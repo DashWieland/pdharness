@@ -28,6 +28,9 @@ uv tool install git+https://github.com/DashWieland/pdharness
 pdharness doctor
 ```
 
+If the shell says `pdharness` is not found, uv's tool directory is not on
+your PATH yet: run `uv tool update-shell`, open a new terminal, try again.
+
 `doctor` renders a one-second sine through your Pd and reports whether it
 heard an A4. If it did, everything works. The three harness packages
 (pdverify, pdbuild and a patched py2pd) are pulled from git by the install;
