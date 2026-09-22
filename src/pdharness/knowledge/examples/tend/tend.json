@@ -1,0 +1,257 @@
+{
+  "instrument": "tend",
+  "osc": {
+    "in_port": 9000,
+    "out_port": 9001,
+    "in": "/<name> <value> sets a control (lands on <name>_ui); /nextpattern /nextintensity /nextphrase /snapshot <n> /recall <n>; twins /playdeg <deg> <vel>, /playmidi <note> <vel>, /fakecc <cc> <val>",
+    "out": "/pulse <i> /bar /pulsems <ms> /lastdeg <d> /lastmidi <m> /note <deg> <vel> <voice> <startdeg> <glide> /mel <len> <steps...> (once per bar) /ctl <name> <value> (every dial move) /pattern <n> /intensity <n> /phrase <n> (when a pad lands) /snapshot <name> <value> /gust"
+  },
+  "controls": [
+    {
+      "name": "tempo",
+      "receive": "tempo_ui",
+      "kind": "float",
+      "lo": 110,
+      "hi": 190,
+      "default": 150,
+      "label": "TEMPO  (slow ... fast; the band gets there in two seconds)",
+      "group": "dials"
+    },
+    {
+      "name": "density",
+      "receive": "density_ui",
+      "kind": "float",
+      "lo": 0,
+      "hi": 1,
+      "default": 0.55,
+      "label": "DENSITY  (none of the melody ... all of it, strong beats first)",
+      "group": "dials"
+    },
+    {
+      "name": "mutate",
+      "receive": "mutate_ui",
+      "kind": "float",
+      "lo": 0,
+      "hi": 1,
+      "default": 0.12,
+      "label": "MUTATE  (the tune holds ... keeps rewriting itself)",
+      "group": "dials"
+    },
+    {
+      "name": "filter",
+      "receive": "filter_ui",
+      "kind": "float",
+      "lo": 0,
+      "hi": 1,
+      "default": 1.0,
+      "label": "FILTER  (dark ... open: a resonant dive to 200 Hz on the left)",
+      "group": "dials"
+    },
+    {
+      "name": "storm",
+      "receive": "storm_ui",
+      "kind": "float",
+      "lo": 0,
+      "hi": 1,
+      "default": 0.15,
+      "label": "STORM  (dry ... the dub storm)",
+      "group": "dials"
+    },
+    {
+      "name": "distance",
+      "receive": "distance_ui",
+      "kind": "float",
+      "lo": 0,
+      "hi": 1,
+      "default": 0.0,
+      "label": "DISTANCE  (at the fire ... over the dune)",
+      "group": "dials"
+    },
+    {
+      "name": "stutter",
+      "receive": "stutter_ui",
+      "kind": "momentary",
+      "lo": 0,
+      "hi": 1,
+      "default": 0,
+      "label": "STUTTER (hold: freeze the last pulse)",
+      "group": "pads"
+    },
+    {
+      "name": "killlow",
+      "receive": "killlow_ui",
+      "kind": "momentary",
+      "lo": 0,
+      "hi": 1,
+      "default": 0,
+      "label": "KILL LOW (hold: drums and bass out)",
+      "group": "pads"
+    },
+    {
+      "name": "droneon",
+      "receive": "droneon_ui",
+      "kind": "toggle",
+      "lo": 0,
+      "hi": 1,
+      "default": 1,
+      "label": "DRONE (on / off)",
+      "group": "pads"
+    },
+    {
+      "name": "record",
+      "receive": "record_ui",
+      "kind": "toggle",
+      "lo": 0,
+      "hi": 1,
+      "default": 0,
+      "label": "RECORD (a take: take_NNN.wav next to the patch)",
+      "group": "pads"
+    }
+  ],
+  "gestures": [
+    {
+      "name": "nextpattern",
+      "receive": "nextpattern",
+      "label": "PATTERN+ (next groove variant, on the bar)",
+      "group": "pads"
+    },
+    {
+      "name": "nextintensity",
+      "receive": "nextintensity",
+      "label": "INTENSITY+ (sparse / groove / full, on the bar)",
+      "group": "pads"
+    },
+    {
+      "name": "nextphrase",
+      "receive": "nextphrase",
+      "label": "PHRASE+ (re-seed the tune, at the loop's end)",
+      "group": "pads"
+    },
+    {
+      "name": "snapshot",
+      "receive": "snapshot",
+      "label": "SNAPSHOT <slot> (save the dials to snapshot_<n>.txt)",
+      "group": "scenes"
+    },
+    {
+      "name": "recall",
+      "receive": "recall",
+      "label": "RECALL <slot> (load them back)",
+      "group": "scenes"
+    }
+  ],
+  "twins": [
+    "playdeg",
+    "playmidi",
+    "fakecc",
+    "fakeosc"
+  ],
+  "cc": [
+    {
+      "cc": 74,
+      "control": "tempo",
+      "lo": 110,
+      "hi": 190
+    },
+    {
+      "cc": 71,
+      "control": "density",
+      "lo": 0,
+      "hi": 1
+    },
+    {
+      "cc": 76,
+      "control": "mutate",
+      "lo": 0,
+      "hi": 1
+    },
+    {
+      "cc": 77,
+      "control": "filter",
+      "lo": 0,
+      "hi": 1
+    },
+    {
+      "cc": 93,
+      "control": "storm",
+      "lo": 0,
+      "hi": 1
+    },
+    {
+      "cc": 18,
+      "control": "distance",
+      "lo": 0,
+      "hi": 1
+    }
+  ],
+  "pads": [
+    {
+      "pad": 1,
+      "note": 36,
+      "channel": 10,
+      "action": "stutter (hold)"
+    },
+    {
+      "pad": 2,
+      "note": 37,
+      "channel": 10,
+      "action": "killlow (hold)"
+    },
+    {
+      "pad": 3,
+      "note": 38,
+      "channel": 10,
+      "action": "nextpattern"
+    },
+    {
+      "pad": 4,
+      "note": 39,
+      "channel": 10,
+      "action": "nextintensity"
+    },
+    {
+      "pad": 5,
+      "note": 40,
+      "channel": 10,
+      "action": "nextphrase"
+    },
+    {
+      "pad": 6,
+      "note": 41,
+      "channel": 10,
+      "action": "droneon (flip)"
+    },
+    {
+      "pad": 7,
+      "note": 42,
+      "channel": 10,
+      "action": "record (flip)"
+    },
+    {
+      "pad": 8,
+      "note": 43,
+      "channel": 10,
+      "action": "free"
+    }
+  ],
+  "events_out": [
+    "pulse",
+    "bar",
+    "pulsems",
+    "lastdeg",
+    "lastmidi",
+    "note",
+    "mel",
+    "ctl",
+    "pattern",
+    "intensity",
+    "phrase",
+    "snapshot",
+    "gust"
+  ],
+  "files": {
+    "takes": "take_NNN.wav next to the patch (RECORD)",
+    "snapshot": "snapshot_<n>.txt next to the patch (the six dials + DRONE; SNAPSHOT / RECALL take a slot number)"
+  },
+  "about": "tend is tended, not played: it plays itself, you steer. A meditation instrument by outsiders, made from listening rather than transcription: a Gnawa-derived 12/8 groove (Morocco: the ternary pulse with its 3-against-2 cross, qraqeb-like metal, a guembri-like bass), an oud / ney lead on a maqam scale with a quarter-tone degree, a drone that breathes. None of it reproduces ceremonial music and it should not be presented as one."
+}

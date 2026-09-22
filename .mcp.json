@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pdharness": {
+      "type": "stdio",
+      "command": "pdharness",
+      "args": ["serve"]
+    }
+  }
+}

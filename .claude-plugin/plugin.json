@@ -1,0 +1,6 @@
+{
+  "name": "pdharness",
+  "description": "Build Pure Data instruments you can hear: an MCP server with ears (headless render + analysis), hands (verified modules, scaffold) and the pure-data skill.",
+  "version": "0.1.0",
+  "author": { "name": "Dash Wieland" }
+}

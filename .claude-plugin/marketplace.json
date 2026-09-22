@@ -1,0 +1,12 @@
+{
+  "name": "pdharness",
+  "owner": { "name": "Dash Wieland" },
+  "plugins": [
+    {
+      "name": "pdharness",
+      "description": "Build Pure Data instruments you can hear.",
+      "source": ".",
+      "repository": "https://github.com/DashWieland/pdharness"
+    }
+  ]
+}
