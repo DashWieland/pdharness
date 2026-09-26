@@ -4,27 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdharness"
-version = "0.1.1"
+version = "0.2.0"
 description = "Bring your own agent: an MCP server and knowledge bank for building Pure Data instruments you can hear."
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Dash Wieland" }]
 dependencies = [
-  "mcp>=1.20,<2",   # mcp 2 renamed FastMCP (server.py imports mcp.server.fastmcp); port before lifting
-  "numpy>=1.22",
+  # Every dependency is bounded: an unbounded "mcp>=1.20" let mcp 2 (which renamed
+  # FastMCP) break every fresh install of 0.1.0.  Raise a cap only after the tests
+  # pass on the new major version.
+  "mcp>=2.2,<3",
+  "numpy>=1.22,<3",
   # The three pieces of the harness.  None is on PyPI yet; pdbuild needs the
   # py2pd fork (Patcher geometry, add_comment, lossless to_builder, floatatom
   # field order), so all three come from git, pinned to release tags (and the
   # fork's commit): an install changes only when a pin does, and bumping a pin
-  # is how a library release reaches participants.  See README "Develop".
+  # is how a library release reaches participants.  See README "Development".
   "py2pd @ git+https://github.com/DashWieland/py2pd@c04d7786034466ea0d0b0faea1c2f0cd231707fc",  # fix/floatatom-fields-and-comments
   "pdverify @ git+https://github.com/DashWieland/pdverify@v0.4.0",
   "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.8.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8,<10"]
 
 [project.scripts]
 pdharness = "pdharness.cli:main"

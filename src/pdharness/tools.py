@@ -166,9 +166,10 @@ def verify_patch(patch: str, expectations: list[dict], duration: float = 6.0,
     """Render and score against pdverify's expectation vocabulary.
 
     expectations: [{"name": "note", "args": ["A4"], "kwargs": {"tol_cents": 30}, "within": [0.5, 2.0]}, ...]
-    Names are the functions in pdverify.expect (not_silent, no_clipping, pitch, note, level, tonal,
-    noisy, centroid, has_partial, harmonic, brighter_than, darker_than, band, percussive, sustained,
-    onsets, stereo, dynamic, steady, ioi, ioi_cv, period, repeats, matches_reference, ...).
+    Names are the functions in pdverify.expect (not_silent, no_clipping, pitch, note, f0, level, tonal,
+    noisy, centroid, has_partial, harmonic, harmonic_series, brighter_than, darker_than, band,
+    percussive, sustained, onsets, stereo, dynamic, steady, ioi, ioi_cv, period, repeats,
+    matches_reference, ...).
     """
     from pdverify import expect, verify
 

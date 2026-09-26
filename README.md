@@ -110,12 +110,23 @@ The knowledge bank lives in `src/pdharness/knowledge/`. `skills/pure-data/`
 is a copy of `knowledge/skill/` for the Claude Code plugin; a test keeps
 them identical.
 
-`pyproject.toml` pins pdverify and pdbuild to release tags and the py2pd fork
-to a commit, so what an install gets changes only when a pin does. To ship a
-library change: tag it in its own repo once its tests (and pdverify's CI) are
-green, bump the pin here, bump pdharness's version (`pyproject.toml`,
-`__init__.py`, `.claude-plugin/plugin.json`), run the tests, push. Do it
-between participants, so each field log names one kit.
+`main` is what `uv tool install` gives a participant, so every push to it is a
+release. Dependencies are pinned so that an install changes only when
+`pyproject.toml` does: pdverify and pdbuild to release tags, the py2pd fork
+to a commit, and everything else with an upper bound.
+
+To release:
+
+1. Tag the library change in its own repo, once its tests (and pdverify's
+   CI) are green.
+2. Bump the pin here.
+3. Bump the version in `pyproject.toml`, `src/pdharness/__init__.py`,
+   `.claude-plugin/plugin.json` and `CHANGELOG.md`.
+4. Run the tests in a fresh environment.
+5. Push, between participants, so that each field log names one kit.
+
+The tests fail if the four version strings disagree, if a dependency has no
+upper bound, or if a git dependency follows a branch.
 
 ## Credits
 

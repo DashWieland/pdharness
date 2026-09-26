@@ -6,6 +6,7 @@ from __future__ import annotations
 import filecmp
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -50,6 +51,39 @@ def test_plugin_skill_is_the_bank_skill():
 def test_plugin_manifests_parse():
     for f in (ROOT / ".claude-plugin" / "plugin.json", ROOT / ".claude-plugin" / "marketplace.json", ROOT / ".mcp.json"):
         json.loads(f.read_text(encoding="utf-8"))
+
+
+def _project() -> dict:
+    import tomllib
+
+    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+
+
+def test_version_is_the_same_everywhere():
+    """A release bumps pyproject.toml, __init__.py, the plugin manifest and the
+    changelog together; this fails when one is forgotten.  (Read from the files,
+    not the installed package, so a worktree tests its own copy.)"""
+    version = _project()["version"]
+    init = re.search(r'__version__ = "([^"]+)"', (ROOT / "src" / "pdharness" / "__init__.py").read_text(encoding="utf-8"))
+    plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
+    top = re.search(r"^## (\S+)", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), re.M)
+    found = (version, init and init.group(1), plugin, top and top.group(1))
+    assert len(set(found)) == 1, f"pyproject, __init__, plugin.json, CHANGELOG disagree: {found}"
+
+
+def test_dependencies_are_bounded_and_pinned():
+    """What a participant's install gets must change only when this file does.
+    Every index dependency has an upper bound, and every git dependency names a
+    release tag or a full commit, never a branch.  (0.1.0's unbounded mcp let mcp 2
+    break every fresh install.)"""
+    project = _project()
+    reqs = list(project["dependencies"]) + [r for group in project.get("optional-dependencies", {}).values() for r in group]
+    for req in reqs:
+        if " @ " in req:
+            ref = req.rsplit("@", 1)[1]
+            assert re.fullmatch(r"v\d+\.\d+\.\d+|[0-9a-f]{40}", ref), f"{req}: pin a release tag or a full commit, not {ref!r}"
+        else:
+            assert "<" in req, f"{req}: give it an upper bound"
 
 
 def test_box_count_ignores_subpatch_contents():
@@ -106,6 +140,9 @@ def test_mcp_server_answers_over_stdio():
                         "list_modules", "knowledge_read"} <= names, names
                 res = await s.read_resource("knowledge://00_START_HERE.md")
                 assert "iron rule" in res.contents[0].text
+                # the server's instructions send agents here first; a path with '/' needs {+path}
+                for uri in ("knowledge://skill/SKILL.md", "knowledge://lessons/LESSONS.md"):
+                    assert (await s.read_resource(uri)).contents[0].text.strip(), uri
                 mods = await s.call_tool("list_modules", {})
                 assert "acid_voice" in mods.content[0].text
                 prompts = {p.name for p in (await s.list_prompts()).prompts}

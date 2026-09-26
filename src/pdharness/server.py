@@ -7,7 +7,7 @@ the first.
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from . import knowledge, tools
 
@@ -25,7 +25,8 @@ renders; edit from there. When the instrument is done, fill in the field log
 the scaffold created: it is how the harness learns.
 """
 
-mcp = FastMCP("pdharness", instructions=INSTRUCTIONS)
+# keyword arguments only: mcp 2 put title and description before instructions
+mcp = MCPServer("pdharness", instructions=INSTRUCTIONS)
 
 
 # ----------------------------------------------------------------- tools
@@ -53,10 +54,10 @@ def verify_patch(patch: str, expectations: list[dict], duration: float = 6.0,
                  controls: list[dict] | None = None) -> dict:
     """Render and score against named expectations, worst first.  Each expectation is
     {"name": <pdverify.expect function>, "args": [...], "kwargs": {...}, "within": [t0, t1]?}.
-    Names: not_silent, no_clipping, finite, pitch, note, level, tonal, noisy, centroid,
-    has_partial, harmonic, loudest_partial, brighter_than, darker_than, band, percussive,
-    sustained, onsets, stereo, dynamic, steady, ioi, ioi_cv, period, repeats, matches_reference,
-    duration.  Use it to turn every claim about the instrument into a check."""
+    Names: not_silent, no_clipping, finite, pitch, note, f0, level, tonal, noisy, centroid,
+    has_partial, harmonic, harmonic_series, loudest_partial, brighter_than, darker_than, band,
+    percussive, sustained, onsets, stereo, dynamic, steady, ioi, ioi_cv, period, repeats,
+    matches_reference, duration.  Use it to turn every claim about the instrument into a check."""
     return tools.verify_patch(patch, expectations, duration, controls)
 
 
@@ -130,7 +131,9 @@ def _index() -> str:
     return knowledge.index()
 
 
-@mcp.resource("knowledge://{path}", name="knowledge document", mime_type="text/markdown")
+# {+path} (RFC 6570 reserved expansion) matches across '/', so knowledge://skill/SKILL.md
+# resolves; a plain {path} stops at the first slash.
+@mcp.resource("knowledge://{+path}", name="knowledge document", mime_type="text/markdown")
 def _doc(path: str) -> str:
     return knowledge.read(path)
 
