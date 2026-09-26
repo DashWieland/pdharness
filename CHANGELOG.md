@@ -5,6 +5,13 @@ every push to it is a release. The version below must match `pyproject.toml`,
 `src/pdharness/__init__.py` and `.claude-plugin/plugin.json`, and a test
 checks that.
 
+## 0.2.2 (2026-09-26) — pdbuild v0.9.1, py2pd 11baaf2
+
+- Pins pdbuild v0.9.0 -> v0.9.1.
+- Pins py2pd c04d778 -> 11baaf2.
+- pdbuild 0.9.1: `Patch.load` reads graph-on-parent arrays back (one made in Pd's GUI keeps its saved contents); extract sees control-rate table uses; `[del]`, `[table]` and every `[list]`/`[array]` verb have checked inlet and outlet counts (`[list split]` has 3 outlets).
+- py2pd fork 11baaf2: graphs and `#A` data parse and re-save exactly; `#X coords` is written the way Pd writes it, so a graph-on-parent subpatch asked to hide its name now does.
+
 ## 0.2.1 (2026-09-26) — pdbuild 0.9.0
 
 - Pins pdbuild v0.8.0 -> v0.9.0.
