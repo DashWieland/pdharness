@@ -11,7 +11,7 @@ requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Dash Wieland" }]
 dependencies = [
-  "mcp>=1.20",
+  "mcp>=1.20,<2",   # mcp 2 renamed FastMCP (server.py imports mcp.server.fastmcp); port before lifting
   "numpy>=1.22",
   # The three pieces of the harness.  None is on PyPI yet; pdbuild needs the
   # py2pd fork (Patcher geometry, add_comment, lossless to_builder, floatatom
