@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdharness"
-version = "0.1.0"
+version = "0.1.1"
 description = "Bring your own agent: an MCP server and knowledge bank for building Pure Data instruments you can hear."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -15,10 +15,12 @@ dependencies = [
   "numpy>=1.22",
   # The three pieces of the harness.  None is on PyPI yet; pdbuild needs the
   # py2pd fork (Patcher geometry, add_comment, lossless to_builder, floatatom
-  # field order), so all three are pinned to git.  See README "Install".
-  "py2pd @ git+https://github.com/DashWieland/py2pd@fix/floatatom-fields-and-comments",
-  "pdverify @ git+https://github.com/DashWieland/pdverify@main",
-  "pdbuild @ git+https://github.com/DashWieland/pdbuild@main",
+  # field order), so all three come from git, pinned to release tags (and the
+  # fork's commit): an install changes only when a pin does, and bumping a pin
+  # is how a library release reaches participants.  See README "Develop".
+  "py2pd @ git+https://github.com/DashWieland/py2pd@c04d7786034466ea0d0b0faea1c2f0cd231707fc",  # fix/floatatom-fields-and-comments
+  "pdverify @ git+https://github.com/DashWieland/pdverify@v0.4.0",
+  "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.8.0",
 ]
 
 [project.optional-dependencies]

@@ -33,8 +33,8 @@ your PATH yet: run `uv tool update-shell`, open a new terminal, try again.
 
 `doctor` renders a one-second sine through your Pd and reports whether it
 heard an A4. If it did, everything works. The three harness packages
-(pdverify, pdbuild and a patched py2pd) are pulled from git by the install;
-none is on PyPI yet.
+(pdverify, pdbuild and a patched py2pd) are pulled from git by the install,
+pinned to tagged releases; none is on PyPI yet.
 
 Register the server with your agent:
 
@@ -109,6 +109,13 @@ python -m pytest tests -q
 The knowledge bank lives in `src/pdharness/knowledge/`. `skills/pure-data/`
 is a copy of `knowledge/skill/` for the Claude Code plugin; a test keeps
 them identical.
+
+`pyproject.toml` pins pdverify and pdbuild to release tags and the py2pd fork
+to a commit, so what an install gets changes only when a pin does. To ship a
+library change: tag it in its own repo once its tests (and pdverify's CI) are
+green, bump the pin here, bump pdharness's version (`pyproject.toml`,
+`__init__.py`, `.claude-plugin/plugin.json`), run the tests, push. Do it
+between participants, so each field log names one kit.
 
 ## Credits
 

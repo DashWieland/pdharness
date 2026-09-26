@@ -5,4 +5,4 @@ tools, and a knowledge bank (`pdharness knowledge`) of everything the harness
 has learned, so an agent that has never seen Pure Data starts fluent.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
