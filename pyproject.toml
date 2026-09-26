@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdharness"
-version = "0.2.0"
+version = "0.2.1"
 description = "Bring your own agent: an MCP server and knowledge bank for building Pure Data instruments you can hear."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -23,7 +23,7 @@ dependencies = [
   # is how a library release reaches participants.  See README "Development".
   "py2pd @ git+https://github.com/DashWieland/py2pd@c04d7786034466ea0d0b0faea1c2f0cd231707fc",  # fix/floatatom-fields-and-comments
   "pdverify @ git+https://github.com/DashWieland/pdverify@v0.4.0",
-  "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.8.0",
+  "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.9.0",
 ]
 
 [project.optional-dependencies]

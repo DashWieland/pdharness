@@ -5,6 +5,11 @@ every push to it is a release. The version below must match `pyproject.toml`,
 `src/pdharness/__init__.py` and `.claude-plugin/plugin.json`, and a test
 checks that.
 
+## 0.2.1 (2026-09-26) — pdbuild 0.9.0
+
+- Pins pdbuild v0.8.0 -> v0.9.0.
+- pdbuild 0.9.0: `Patch.graph()` draws a graph-on-parent array a player can watch (locked against mouse edits); a multi-expression `[expr a; b]` gets one outlet per expression; `surface.record_takes()` records numbered takes that never overwrite an earlier one.
+
 ## 0.2.0 (2026-09-26) — mcp 2
 
 - The server runs on mcp 2: `MCPServer`, the renamed `FastMCP`. The dependency
