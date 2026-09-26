@@ -106,6 +106,13 @@ per-instance unique id — use `$0-name` for instance-local send/receive/array
 names. `$v1`/`$f1` inside `expr~`/`expr` are *not* expanded (no digit after `$`)
 and pass through safely.
 
+**`$0` in a message box is `0`, not the instance id** (verified 0.56.2:
+`[$0(` outputs 0 and `[$0-name(` outputs `0-name`, where `[f $0]` gives
+1004). So `[; $0-freq 440(` silently sends to a global `0-freq`. To get the
+id into a message, carry it in an object: `[f $0]` → `[; $1-freq 440(`
+reaches `[r $0-freq]` (verified). Or send through an object box that has
+the name: `[s $0-freq]`.
+
 Full detail incl. arrays, subpatches, GUI parameter lists:
 [references/file-format.md](references/file-format.md).
 

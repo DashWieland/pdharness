@@ -78,11 +78,17 @@ and `from pdbuild import surface`.
 | `pad_row(patch, x, y, pads, *, spacing=42, ...)` | A horizontal row of pads, the on-screen twin of a MIDI pad row. |
 | `cc_map(patch, entries, *, x, y, fake_recv='fakecc', ...)` | A `[ctlin]` router: `(cc, name, lo, hi)` entries drive `<name>_ui`; `fakecc` lets a test impersonate the controller. |
 | `note_split(patch, *, pad_channel=10, x, y, keys_send='midi_in', pads_send='pad_in')` | `[notein]` split by channel into keys and pads. |
+| `record_takes(patch, source_l, source_r, *, recv='record', prefix='take_', x, y)` | RECORD that never overwrites: `<recv> 1` records the final output into the first free `take_NNN.wav` beside the patch, and `<recv> 0` stops. Drive it from a `tgl` or a pad. Check it in real time, not a batch render, because `writesf~` opens its file too late for a batch render. |
 | `ui_name(name)` | `<name>_ui`. |
 | `widget_size(kind, ...)` / `widget_text(kind, ...)` | Pd's drawn size and the IEM object text, for layout. |
 
-`pdbuild.preview.layout_png(patch)` draws the canvas; `pdbuild.preview.overlaps(...)`
-finds widgets that collide. Run it in the build, not by hand afterwards.
+`patch.graph(name, size, x, y, w, h, ylo, yhi, *, style='points', hide_name=True, editable=False)`
+draws a table as a graph-on-parent array a player can watch, such as a tune,
+a step pattern or a lane of flags. It is locked against mouse edits at load.
+Pd does not clip values to the graph, so make `ylo..yhi` hold every value the
+patch writes. `pdbuild.preview.layout_png(patch)` draws the canvas, graphs
+included; `pdbuild.preview.overlaps(...)` finds widgets that collide. Run it
+in the build, not by hand afterwards.
 
 ## Not in the library yet (requested by field logs)
 

@@ -93,8 +93,11 @@ When the pulse has held still for ~150 ms, jump the silent pair to the new
 times and cross-fade to it over ~80 ms. During a glide the echoes keep their
 old spacing, in tune.
 
-`rev3~ <level_dB> <liveness> <crossover_Hz> <damping%>` — 2-in / **4-out**
-reverberator (use outs 0,1 as stereo). Liveness ~70 short, ~85 long, 100 =
+`rev3~ <level_dB> <liveness> <crossover_Hz> <damping%>` — **6-in** / **4-out**
+reverberator (use outs 0,1 as stereo). Inlets: audio L, audio R, then level,
+liveness, crossover and damping, one per inlet, so each can be changed live
+(verified 0.56.2: a connection into inlet 5 is accepted; pdbuild's
+`OBJECT_IO` checks it against Pd). Liveness ~70 short, ~85 long, 100 =
 infinite. Higher damping = darker tail. `rev1~`/`rev2~` are cheaper.
 
 ## Sequencing idioms

@@ -9,6 +9,14 @@ checks that.
 
 - Pins pdbuild v0.8.0 -> v0.9.0.
 - pdbuild 0.9.0: `Patch.graph()` draws a graph-on-parent array a player can watch (locked against mouse edits); a multi-expression `[expr a; b]` gets one outlet per expression; `surface.record_takes()` records numbered takes that never overwrite an earlier one.
+- The bank follows pdbuild 0.9.0. The cookbook and the pdbuild README are
+  the v0.9.0 versions, and the module catalogue now lists `record_takes` and
+  `patch.graph`.
+- The skill corrects two facts, both verified in Pd 0.56.2:
+  - `$0` in a message box is `0`, not the instance id, so
+    `[; $0-freq 440(` goes to a global `0-freq`. `[f $0]` → `[; $1-freq 440(`
+    reaches `[r $0-freq]`.
+  - `[rev3~]` has 6 inlets, not 2.
 
 ## 0.2.0 (2026-09-26) — mcp 2
 
