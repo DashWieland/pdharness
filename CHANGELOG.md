@@ -19,6 +19,14 @@ checks that.
 - Every dependency now has an upper bound. The tests fail when a dependency
   lacks one, when a git dependency names a branch, or when the four version
   strings disagree.
+- The bank's copy of the skill has caught up with the live skill. Its
+  `references/objects.md` now covers:
+  - Chebyshev waveshaping, for exact harmonics from a sine;
+  - why a tempo-synced delay must not slide its taps;
+  - `[array random]` as a weighted choice;
+  - `[expr]` reading tables and `[value]` cells, and giving one outlet per
+    expression;
+  - `[file isfile]` banging its right outlet for a missing path.
 
 ## 0.1.1 (2026-09-26) — pinned
 

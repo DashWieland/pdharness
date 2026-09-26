@@ -63,6 +63,17 @@ after them (or a modest cutoff) hides it.
 than `clip~` for "meat". Drive pre-gain of 1–6 is a useful range; add makeup
 gain after. `clip~` remains the right tool as a final safety limiter.
 
+**Exact harmonics from a sine: Chebyshev waveshaping.** For a unit-amplitude
+cosine c = `[osc~]`, `T_k(c) = cos(kx)` exactly: T2 = 2c²−1, T3 = 4c³−3c,
+T4 = 8c⁴−8c²+1, T5 = 16c⁵−20c³+5c, T6 = 32c⁶−48c⁴+18c²−1. So
+`[expr~ $f2*(2*$v1*$v1-1) + $f3*(4*pow($v1,3)-3*$v1) + …]` adds harmonic k at
+amplitude `$f(k)`, a brightness control that keeps a pitched voice exactly
+harmonic, has no DC, and follows a gliding pitch. Shape the unit cosine
+*before* the amplitude envelope (the identity needs amplitude 1), and hold
+the level with 1/sqrt(1 + Σa_k²). A 1:1 FM pair used for the same job put a
+sideband through 0 Hz and made a pitch-dropping drum double-strike
+(overtone, 2026-09).
+
 ## Delay, chorus, reverb
 
 `delwrite~ <name> <maxms>` writes a delay line; `delread~ <name> <ms>` reads at
@@ -72,6 +83,15 @@ what makes chorus/flange possible — modulate the delay time with a slow LFO).
 Feedback delay: read → `*~ feedback` → clip → sum back into the `delwrite~`
 input. Keep feedback < ~0.7 and clip it, or it runs away. Cross-feeding L→R and
 R→L gives ping-pong.
+
+**A tempo-synced delay must not slide its taps.** A `vd~` whose time follows
+the pulse (`[r pulsems] → [* 3] → [line~] → vd~`) bends the pitch of every
+echo while the tempo glides: the read point moves, which is a Doppler shift.
+A 60 → 165 BPM glide bent a 6-pulse tap up about six semitones, and a
+player heard it as "inharmonic until it resettles". Use two fixed tap pairs.
+When the pulse has held still for ~150 ms, jump the silent pair to the new
+times and cross-fade to it over ~80 ms. During a glide the echoes keep their
+old spacing, in tune.
 
 `rev3~ <level_dB> <liveness> <crossover_Hz> <damping%>` — 2-in / **4-out**
 reverberator (use outs 0,1 as stereo). Liveness ~70 short, ~85 long, 100 =
@@ -116,6 +136,30 @@ onset (fires), **middle = number of points** (float, −1 = to the end), right =
 the array **name** (symbol). A count sent to the right inlet gives `inlet:
 expected 'symbol' but got 'float'` — the error names the inlet's type, which
 is the fastest way to learn a multi-inlet object's layout headless.
+
+**Weighted random choice is one object: `[array random name]`.** Bang it and
+it outputs an index with probability proportional to that array's values
+(verified: weights `0 1 0 3` → 1009 : 2991 over 4000 draws). Fill a small
+array with weights, bang, done — a Markov step or a tempered choice needs no
+cumulative-sum loop. `[array quantile name]` is the same with your own 0..1
+input. Seeds are per object and deterministic by creation order, like
+`[random]`; a `seed <n>` message resets one.
+
+**`[expr]` reads tables and `[value]` cells by name**, which keeps state
+machines small: `[expr tune[(ot_i+23)%24] - 6]` reads array `tune` at an
+index computed from the `[v ot_i]` cell, with `%`, `if()`, `pow()`, `max()`
+all available (verified 0.56.2). Share engine state through `[v name]` cells
+and let each `[expr]` read what it needs instead of wiring every value in.
+**A multi-expression `[expr a; b; c]` has one outlet per expression and
+fires them right to left**, so its outlets can feed a `[pack f f f]` directly
+(the hot left inlet arrives last). In a file the separators are `\;`.
+
+**`[file isfile]` does not output 0 for a missing path — it bangs its right
+(error) outlet.** Outlet 0 gives `1` for an existing file; a path that does
+not exist produces only a bang on outlet 1, so `[file isfile] → [sel 0]`
+never fires (verified 0.56.2). Resolve a name next to the patch with
+`[file patchpath]` (symbol in → absolute path out). Together: find the next
+free `take_NNN.wav` so RECORD never overwrites an earlier take.
 
 ## Control routing
 
