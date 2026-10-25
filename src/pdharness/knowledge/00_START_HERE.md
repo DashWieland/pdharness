@@ -6,6 +6,8 @@ that, eleven instruments in: the tools, the semantics, the lessons, and the
 deal. Read this page fully. Then read `skill/SKILL.md` and
 `lessons/LESSONS.md`. Everything else is reference for when you need it.
 
+Building something ambient, or a file to deliver? `examples/drift/` is a
+small worked example (the ambient modules, five claims, a family of loops).
 Setting up, or helping a person set up? `guides/SETUP.md` covers installing
 Pd properly, a project folder under git, and the loop between the agent and
 the person who listens.

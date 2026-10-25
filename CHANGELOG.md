@@ -69,6 +69,13 @@ what its first real job needed, which the kit could not do: files to deliver
   cold shell, a build script or another client finds the same binary with no
   environment variable. `pd_remembered` names the file; `remember=false` /
   `--no-remember` leaves no trace. Tests keep it in a temp dir.
+- **Bank: a second worked example, `examples/drift/`**, a small self-playing
+  ambient bed composed from pdbuild 0.10.0's ambient modules (scale_walk,
+  pluck, drone, noise_bed, reverb). Six dials, five claims (DENSITY counted
+  by a probe, BRIGHT with the air isolated, LIFT from one end-relative score
+  at 19 and 30 s), and a `deliver()` that renders a family of loops and cuts
+  at 48 kHz/24-bit and scores each file. `modules/CATALOGUE.md` lists the
+  ambient tier.
 - **Bank:** a new `guides/SETUP.md` (the agent's needs and the person's, installing Pd
   where it stays, a project under git, the loop between them), linked from the
   start page and the README; a new `guides/DELIVERING.md` (loops, arcs, level, small speakers,

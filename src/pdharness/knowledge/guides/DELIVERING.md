@@ -63,6 +63,9 @@ the last four seconds.
 
 ## A family of files is a loop in your build script
 
+The worked example is `examples/drift/build_drift.py`. Its `deliver()` is
+this loop, and every file it writes passes its claims.
+
 There is no batch format to learn. One patch, a few control sets and a
 few lengths give a family of related files that share a sound:
 

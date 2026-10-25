@@ -8,7 +8,7 @@ one against what this instrument actually needs (Lessons, "the claw hammer").
 Usage pattern: every module takes the `Patch` first, then its inputs (a
 trigger node, a signal node, a control node), then keyword parameters, and
 returns the node(s) to wire onward. Import as
-`from pdbuild.modules import voices, drums, filters, effects, envelopes, control, sequencing, scales`
+`from pdbuild.modules import voices, drums, filters, effects, envelopes, control, sequencing, scales, ambient`
 and `from pdbuild import surface`.
 
 ## Synth voices (`pdbuild.modules.voices`)
@@ -89,6 +89,21 @@ Pd does not clip values to the graph, so make `ylo..yhi` hold every value the
 patch writes. `pdbuild.preview.layout_png(patch)` draws the canvas, graphs
 included; `pdbuild.preview.overlaps(...)` finds widgets that collide. Run it
 in the build, not by hand afterwards.
+
+## Ambient (`pdbuild.modules.ambient`, pdbuild 0.10.0)
+
+All vanilla Pd (no externals, nothing from Pd's `extra/`), seeded where
+random, and each verified against a negative control. The worked example
+`examples/drift/` composes all six.
+
+| Function | Does |
+|---|---|
+| `reverb(patch, sig, *, size=0.6, damping=0.4, mix=0.3, decay_s=None, predelay_ms=12, diffusion=0.6, mod_ms=0.3)` | An 8-line feedback delay network (Hadamard mixing, damping in each line, wobbled lengths). Returns `Stereo` (`.left`, `.right`). RT60 = 0.4·25^size s (measured 0.72 / 1.86 / 4.9 s); stable with no clip in the loop; `mix=0` is the input, sample for sample. Takes a port, a `Stereo` or a `[l, r]` list. |
+| `drone(patch, pitch, *, partials=((1,1),(2,.5),(3,.33),(4,.25),(5,.2)), lfo_rates=None, lfo_depth=0.6, loop_s=None, glide_ms=0, gain=0.2)` | Sine partials, each breathing on its own slow LFO (0.03–0.11 Hz). `loop_s` rounds every LFO to whole cycles per loop; for a seamless loop make `pitch * loop_s` an integer too. |
+| `pluck(patch, trigger, pitch, *, decay=2.0, brightness=0.5, partials=6, voices=4, attack_ms=4, gain=0.3)` | A soft plucked tone from decaying harmonics, round-robin over `voices` so notes ring under each other. `trigger=None` plays every pitch that arrives. Exact at any pitch (a Karplus-Strong loop on the canvas tops out at 689 Hz). |
+| `noise_bed(patch, *, lo=300, hi=3000, swell_rate=0.07, swell_depth=0.6, flutter=0.3, flutter_hz=3, seed=1, loop_s=None, gain=0.1)` | Seeded band-limited noise (24 dB/oct edges, recomputed for the running sample rate) with a slow swell and an irregular flutter: surf, wind, rain, a stream. RMS ≈ `gain`. |
+| `loop_lfo(patch, *, loop_s, cycles=1, phase=0.0, shape="sine", lo=0, hi=1)` | An LFO that completes exactly `cycles` per loop (a `metro`-restarted `vline~`, 2e-6 of a cycle of drift after a minute; `phasor~` drifts 50x more). `shape` is sine, triangle or ramp. |
+| `scale_walk(patch, clock, *, scale=(0,2,4,7,9), tonic=60, seed=1, step_weights=..., density=0.5, lo=-5, hi=9, start=0, density_recv=None)` | A seeded random walk over scale degrees, one tick per `clock` bang. `.midi` and `.degree` outlets. Density thins one melody rather than choosing another (the sparse walk is the dense walk's opening, note for note). `density_recv` makes it live. |
 
 ## Not in the library yet (requested by field logs)
 

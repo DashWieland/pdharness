@@ -107,3 +107,24 @@ def test_doctor_remembers_a_pd_that_passes(tmp_path, monkeypatch):
     pd_locate.forget()
     info = tools.doctor(remember=False)
     assert "pd_remembered" not in info and pd_locate.remembered() is None
+
+
+def test_the_bank_drift_example_builds_and_its_default_state_holds(tmp_path):
+    """The worked example builds from a copy, and its first claim holds (the full 5 checks
+    and the delivered family run in its own build script, about a minute)."""
+    import subprocess
+    import sys
+
+    from pdverify import expect, verify
+    from pdverify.render import RenderSpec
+
+    src = Path(tools.__file__).parent / "knowledge" / "examples" / "drift" / "build_drift.py"
+    shutil.copy(src, tmp_path / "build_drift.py")
+    r = subprocess.run([sys.executable, str(tmp_path / "build_drift.py"), "--build-only"],
+                       capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr
+    card = verify(str(tmp_path / "drift.pd"),
+                  [expect.not_silent(), expect.no_clipping(0.9),
+                   expect.band_level(250, min_db=-12, relative=True)],
+                  spec=RenderSpec(duration=8.0))
+    assert card.passed, card.feedback()
