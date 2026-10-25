@@ -69,7 +69,9 @@ what its first real job needed, which the kit could not do: files to deliver
   cold shell, a build script or another client finds the same binary with no
   environment variable. `pd_remembered` names the file; `remember=false` /
   `--no-remember` leaves no trace. Tests keep it in a temp dir.
-- **Bank:** a new `guides/DELIVERING.md` (loops, arcs, level, small speakers,
+- **Bank:** a new `guides/SETUP.md` (the agent's needs and the person's, installing Pd
+  where it stays, a project under git, the loop between them), linked from the
+  start page and the README; a new `guides/DELIVERING.md` (loops, arcs, level, small speakers,
   a family of takes), `render_patch` on the start page, and lessons 47-52
   ("Delivering a file").
 

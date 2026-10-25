@@ -37,6 +37,7 @@ DESCRIPTIONS = {
     "examples/tend/DESIGN.md": "tend's design rule (one dial, one audible thing) and its four contracts.",
     "examples/tend/build_tend.py": "tend's build script: 2500 lines of Pd from pdbuild, with its 50-check verifier.",
     "examples/tend/tend.json": "tend's manifest: the control surface as a contract.",
+    "guides/SETUP.md": "Setting up: the agent's needs and the person's, installing Pd properly, a project under git, the loop between them.",
     "guides/DELIVERING.md": "Delivering a file: seamless loops, a lift near the end, level, small speakers, a family of takes.",
     "field_test/PROTOCOL.md": "How a build session with a participant is run and measured.",
     "field_test/LOG_TEMPLATE.md": "The field log every build writes when it is done.",

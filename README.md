@@ -15,9 +15,13 @@ package ships.
 
 ## What you need
 
-- **Pure Data** (vanilla, 0.54 or later) on your PATH, from
-  [puredata.info](https://puredata.info). The ELSE library is optional;
-  `doctor` says whether it is found.
+- **Pure Data** (vanilla, 0.54 or later), installed where it stays, from
+  [puredata.info](https://puredata.info) (Windows installer, macOS app in
+  `/Applications`, or `sudo apt install puredata`). The ELSE library is
+  optional; `doctor` says whether it is found.
+- **A person who listens.** The agent can measure; only a person can say
+  whether it is good, on the speaker it will be heard on. The bank's
+  `guides/SETUP.md` covers both roles, and a healthy loop between them.
 - **Python 3.13 or later** (3.14 is what the tests run on) and
   [uv](https://docs.astral.sh/uv/) (or pip).
 - **An agent.** One that speaks MCP gets the server; Claude Code is the
@@ -58,10 +62,10 @@ pd_found_by        `pd` on PATH
   Windows, every new shell:    setx PDVERIFY_PD "/usr/local/bin/pd"
 ```
 
-The MCP server renders with that Pd, and `run_script` and `pdharness run`
-pass it to the scripts they start. A build script run any other way does
-its own lookup, so if your shell starts cold for every command, set
-`PDVERIFY_PD` or use `pdharness run`. `pdharness doctor --json` gives the
+A Pd that passes is **remembered** (pdverify's per-user config), so every
+later lookup finds it: a cold shell, a build script run any way, the MCP
+server. `--no-remember` leaves no trace. The persist lines above are the
+alternative for setups that want an environment variable instead. `pdharness doctor --json` gives the
 same report as JSON.
 
 Register the server with your agent:
