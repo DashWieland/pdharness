@@ -1,6 +1,6 @@
 # Lessons
 
-Every lesson from every field test, 2026-07 to 2026-09, by theme. Each one
+Every lesson from every field test, 2026-07 to 2026-10, by theme. Each one
 cost at least an iteration; several cost a day. The instruments they came
 from: an emotion wheel of one-shot voices, a morph pad, a choral break
 slicer, a Gnawa/maqam trance rig (lila_rig), its two-family successor
@@ -190,3 +190,32 @@ harmoniser (halo).
     callbacks take one argument; float creation arguments to `[clone]` are
     mistaken for abstraction names (pass integers); the runtime needs
     cross-origin isolation headers; `netsend`/`netreceive` fail harmlessly.
+
+## F. Delivering a file
+
+47. **Measure on the speaker it plays on.** A bed met its −21 dBFS RMS
+    target and was nearly silent on a phone: the level came from a 55 Hz
+    drone, and above 250 Hz it measured −57 dBFS. `band_level(250,
+    min_db=-12, relative=True)` turns "audible on a phone" into a claim.
+48. **A loop's join is a claim, and a sample difference cannot judge it.**
+    A sine cut at half a cycle has a zero sample step and an audible click
+    (a kink in the slope). `seamless` high-passes the take circularly, the
+    way playback wraps it: clean loops read 0.2–1.03, cuts that click
+    10–4000.
+49. **A crossfade is only as flat as the correlation allows.** Equal power
+    bulges 3 dB on a drone that is the same signal one loop later; any
+    curve dips on a tone in anti-phase with itself one loop later. The join
+    check read 0.00 dB on a crossfade that dipped 18 dB a second in, which
+    is why `seamless` also checks the whole head. Steady tones get whole
+    cycles per loop; generative layers need nothing special.
+50. **One score for every length.** Negative times count from the end, in
+    controls and in windows. A lift "4 s before the end" lands in a 19-s cut
+    and a 47-s one without a second score.
+51. **Agents run in cold shells.** A passing doctor and a `PdNotFound` in
+    the next command was one runtime's whole first hour. Doctor now
+    remembers the Pd that passes; anything that matters must be a file or a
+    checkable claim, not shell state.
+52. **Reaching outside the kit is a finding.** A participant who wrote their
+    sketches in numpy instead of Pd was telling the kit what it lacked
+    (loops, level, a family of takes). If you reach for another tool, name
+    the missing one in the field log's Lessons.

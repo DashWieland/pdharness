@@ -20,14 +20,21 @@ PERSIST_LABELS = {
 
 def cmd_doctor(args) -> int:
     from . import tools
-    info = tools.doctor()
+    info = tools.doctor(remember=not args.no_remember)
     if args.json:
         print(json.dumps(info, indent=2, default=str))
         return 0 if info.get("ok") else 1
     persist = info.pop("pd_persist", None)
     for k, v in info.items():
         print(f"{k:18s} {v}")
-    if persist:
+    if info.get("pd_remembered"):
+        print()
+        print("This Pd is remembered: every later lookup (a fresh shell, a build script, the MCP")
+        print(f"server) finds it with no environment variable. ({info['pd_remembered']})")
+        print("To pin it another way instead:")
+        for key, label in PERSIST_LABELS.items():
+            print(f"  {label + ':':28s} {persist[key]}")
+    elif persist:
         print()
         print("Every Pd lookup here (doctor, the MCP server, a build script) follows pdverify's rule,")
         print("but a fresh shell may lack this shell's PATH. To make every shell find this same Pd:")
@@ -150,6 +157,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser("doctor", help="can this machine build and hear a patch? (and which Pd)")
     d.add_argument("--json", action="store_true", help="print the report as JSON")
+    d.add_argument("--no-remember", action="store_true",
+                   help="do not remember the Pd that passes (by default it is, so a cold shell finds it)")
     d.set_defaults(func=cmd_doctor)
 
     s = sub.add_parser("serve", help="run the MCP server on stdio")

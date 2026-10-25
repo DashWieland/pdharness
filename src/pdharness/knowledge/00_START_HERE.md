@@ -24,6 +24,7 @@ matches the intent.
 | `run_script` | run a build script with the interpreter that has pdbuild and pdverify. |
 | `analyze_patch` | **the ears.** Render, then a description, integrity, pitch, level, timbre, onsets, rhythm. After every change. |
 | `verify_patch` | the claims as checks: `note("A3")`, `onsets(8)`, `percussive()`, `brighter_than(ref)`, `repeats(2.4)`, ... worst first. |
+| `render_patch` | a file to use somewhere: a take, or a seamless loop of exact length, at a level and format, claims scored on the file. See `guides/DELIVERING.md`. |
 | `compare_patches` | similarity of two renders; 1.000 means a rewrite changed nothing. |
 | `probe_patch` | **the interaction check.** Audio cannot see a slider that goes nowhere; a `[print]` tap on a receive can. |
 | `list_modules` | the verified parts. Compose before you author. |
@@ -36,8 +37,8 @@ No MCP, only a shell? The CLI has the same loop: `pdharness doctor`,
 `pdharness new <slug> "<description>"`, `pdharness run <build script>` (the
 kit's Python, with the Pd doctor found), `pdharness run -m pdverify analyze
 <patch> --dur 6` for the ears, `pdharness knowledge [path]` for this bank. If
-every command starts in a fresh shell, set the `PDVERIFY_PD` line `doctor`
-prints, or run everything through `pdharness run`.
+every command starts in a fresh shell, run `pdharness doctor` once: a Pd that
+passes is remembered, and every later lookup finds it.
 
 Running unattended, with no person to play the result? Scaffold with
 `participant="agent"` (CLI: `--participant agent`). The field log then treats

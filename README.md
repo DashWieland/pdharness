@@ -143,7 +143,8 @@ both shapes. **both** means the same tool under two names.
 | `new_instrument` | `pdharness new <slug> "<description>"` | both | a build script that already builds, verifies and renders, and its field log |
 | `run_script` | `pdharness run <script> [args]` | both | run a build script with the kit's interpreter and its Pd |
 | `analyze_patch` | `pdharness run -m pdverify analyze <patch> --dur 6` | MCP; CLI through pdverify | the ears: description, integrity, pitch, level, timbre, onsets, rhythm |
-| `verify_patch` | | MCP | claims as checks: pitch, note, level, onsets, percussive, brighter_than, repeats, ... From a shell, the build script's `verify_patch()` is the same check. |
+| `verify_patch` | `pdharness run -m pdverify assert <patch or .wav> ...` | MCP; CLI through pdverify | claims as checks: pitch, note, level, onsets, percussive, brighter_than, repeats, seamless, band_level, change, ... A `.wav` is scored as it is (QA a delivered file). From a shell, the build script's `verify_patch()` is the same check. |
+| `render_patch` | `pdharness run -m pdverify render <patch> -o <wav> [--loop S] [--rms DB --peak DB] [--bits 24] [--send r=v@t]` | MCP; CLI through pdverify | a file to use somewhere: a take, or a seamless loop of exact length; one-gain level; 16/24-bit; claims scored on the file |
 | `compare_patches` | | MCP | similarity between two renders |
 | `probe_patch` | | MCP | the interaction check: `[print]` taps on receives while controls are played in |
 | `list_modules` | `pdharness knowledge modules/CATALOGUE.md` | both | the verified parts |

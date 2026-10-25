@@ -24,7 +24,7 @@ from typing import Any
 def parse_controls(controls: list[dict] | None) -> tuple:
     """JSON control events -> pdverify Control events.
 
-    Each item is one of
+    Each item is one of (``at`` in seconds; negative = before the end of the render)
       {"receive": "tempo", "value": 150, "at": 0.0}        a float/list/symbol to a receive
       {"receive": "tempo", "values": [1, 2, 3], "at": 0.0}  a list
       {"bang": "nextpattern", "at": 1.0}                    a bang
@@ -50,11 +50,12 @@ def parse_controls(controls: list[dict] | None) -> tuple:
     return tuple(events)
 
 
-def _spec(patch: str | Path, duration: float, controls: list[dict] | None, strict: bool = True):
+def _spec(patch: str | Path, duration: float, controls: list[dict] | None, strict: bool = True,
+          sr: int = 44100):
     from pdverify.render import RenderSpec
 
     p = Path(patch)
-    return RenderSpec(duration=float(duration), controls=parse_controls(controls),
+    return RenderSpec(duration=float(duration), sr=int(sr), controls=parse_controls(controls),
                       search_paths=(str(p.parent.resolve()),), strict=strict,
                       pd_binary=locate_pd()["path"])
 
@@ -166,9 +167,11 @@ def _console_errors(console: str) -> list[str]:
 
 # ----------------------------------------------------------------- doctor
 
-def doctor() -> dict:
+def doctor(remember: bool = True) -> dict:
     """Is this machine able to build and hear a patch?  Also: which Pd, found how, and
-    the line that makes a fresh shell find the same one."""
+    the line that makes a fresh shell find the same one.  When the probe render passes and
+    ``remember`` is set, the Pd is remembered (pdverify's per-user config), so every later
+    discovery -- a cold shell, a build script, another client -- finds the same binary."""
     from . import __version__
     info: dict[str, Any] = {"pdharness": __version__, "python": sys.version.split()[0],
                             "python_executable": sys.executable, "platform": platform.platform()}
@@ -205,9 +208,6 @@ def doctor() -> dict:
     if pd.get("warning"):
         info["pd_warning"] = pd["warning"]
     info["pd_persist"] = pd["persist"]
-    # REMEMBER-PD: once pdharness pins pdverify >= 0.5.0, call
-    # pdverify.pd_locate.remember(pd["path"]) here (after the probe render below passes),
-    # so a cold shell's discover() finds this same Pd with no environment variable.
     pd_path = pd["path"]
     # a real render: the only proof the capture pipeline works
     try:
@@ -227,6 +227,15 @@ def doctor() -> dict:
     except Exception as e:
         info["ok"] = False
         info["probe_error"] = str(e)
+    # a Pd that renders is remembered, so a cold shell's discover() finds this same one
+    # with no environment variable (pdverify >= 0.5.0)
+    if info.get("ok") and remember:
+        try:
+            from pdverify import pd_locate
+            if hasattr(pd_locate, "remember"):
+                info["pd_remembered"] = str(pd_locate.remember(pd_path))
+        except Exception as e:  # pragma: no cover - a read-only home, say
+            info["pd_remember_error"] = str(e)
     # ELSE is optional; say whether it is there
     try:
         from pdverify.render import RenderSpec, render
@@ -284,21 +293,88 @@ def verify_patch(patch: str, expectations: list[dict], duration: float = 6.0,
     """
     from pdverify import expect, verify
 
+    exps = build_expectations(expectations)
+    p = Path(patch)
+    if p.suffix.lower() == ".wav":
+        # a delivered file: score what is on disk, no render
+        from pdverify import analyze, read_wav, score
+        audio = read_wav(p)
+        card = score(analyze(audio), exps, audio=audio, meta={"source": str(p)})
+    else:
+        card = verify(str(p), exps, spec=_spec(p, duration, controls))
+    d = card.to_dict()
+    d["description"] = card.report.summary()
+    return d
+
+
+def build_expectations(expectations: list[dict]) -> list:
+    """JSON expectations -> pdverify Expectations.  ``within`` is [t0, t1] seconds; negative
+    times count from the end and a null t1 is the end ([-4, null] = the last four seconds).
+    Lists in args/kwargs stay lists (``change``'s windows take them as [t0, t1])."""
+    from pdverify import expect
+
     exps = []
     for e in expectations:
         fn = getattr(expect, e["name"], None)
-        if fn is None or e["name"].startswith("_"):
+        if fn is None or e["name"].startswith("_") or not callable(fn):
             raise ValueError(f"unknown expectation {e['name']!r}; see pdverify.expect")
         exp = fn(*e.get("args", []), **e.get("kwargs", {}))
         if "within" in e:
             t0, t1 = e["within"]
-            exp = expect.within(float(t0), float(t1), exp)
+            exp = expect.within(float(t0), None if t1 is None else float(t1), exp)
         exps.append(exp)
+    return exps
+
+
+def render_patch(patch: str, out: str, duration: float = 6.0, controls: list[dict] | None = None,
+                 sr: int = 44100, bits: int = 16, loop: float | None = None, crossfade: float = 2.0,
+                 preroll: float = 4.0, rms_dbfs: float | None = None, peak_dbfs: float | None = None,
+                 expectations: list[dict] | None = None) -> dict:
+    """Render a patch to a .wav file meant to be used somewhere: a take of ``duration``, or
+    with ``loop`` a seamless loop of exactly that many seconds (renders preroll + loop +
+    crossfade and crossfades the overrun onto the head).  ``rms_dbfs``/``peak_dbfs`` apply one
+    gain (never a limiter; the ceiling wins).  ``expectations`` are scored on the file as
+    written (e.g. seamless, band_level, change).  Control ``at`` times may be negative: seconds
+    before the end of the render."""
+    from pdverify import analyze, score, write_wav
+    from pdverify.render import render
+
     p = Path(patch)
-    card = verify(str(p), exps, spec=_spec(p, duration, controls))
-    d = card.to_dict()
-    d["description"] = card.report.summary()
-    return d
+    if not p.exists():
+        raise FileNotFoundError(patch)
+    result: dict[str, Any] = {"patch": str(p)}
+    if loop is not None:
+        from pdverify.loops import loop_render_seconds, make_loop, seam
+        n = loop_render_seconds(loop, crossfade, preroll)
+        r = render(str(p), _spec(p, n, controls, sr=sr))
+        audio = make_loop(r.audio, loop, crossfade=crossfade, start=preroll)
+        s = seam(audio, head_s=max(crossfade, 0.5))
+        result["seam"] = {"click_ratio": round(s.click_ratio, 3), "click_dbfs": round(s.click_dbfs, 1),
+                          "level_step_db": round(s.level_step_db, 2),
+                          "head_excursion_db": round(s.head_excursion_db, 2)}
+    else:
+        r = render(str(p), _spec(p, duration, controls, sr=sr))
+        audio = r.audio
+    result.update(pd_version=r.pd_version, render_ms=round(r.wall_ms, 1),
+                  console_errors=_console_errors(r.pd_console))
+    if rms_dbfs is not None or peak_dbfs is not None:
+        from pdverify import master
+        m = master(audio, rms_dbfs=rms_dbfs, peak_dbfs=-1.0 if peak_dbfs is None else peak_dbfs)
+        audio = m.audio
+        result["master"] = {"gain_db": round(m.gain_db, 2), "rms_dbfs": round(m.rms_dbfs, 2),
+                            "peak_dbfs": round(m.peak_dbfs, 2), "peak_bound": m.peak_bound}
+    dest = Path(out)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    result["wav"] = str(write_wav(dest, audio, bits=int(bits)))
+    result.update(duration=round(audio.duration, 4), sr=audio.sr, channels=audio.channels, bits=int(bits))
+    rep = analyze(audio)
+    result["description"] = rep.summary()
+    result["level"] = {"rms_dbfs": round(rep.rms_dbfs, 2), "peak_dbfs": round(rep.peak_dbfs, 2)}
+    if expectations:
+        exps = build_expectations(expectations)
+        card = score(rep, exps, audio=audio)
+        result["verdict"] = card.to_dict()
+    return result
 
 
 def compare_patches(candidate: str, reference: str, duration: float = 6.0,

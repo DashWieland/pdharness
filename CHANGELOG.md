@@ -5,10 +5,12 @@ every push to it is a release. The version below must match `pyproject.toml`,
 `src/pdharness/__init__.py` and `.claude-plugin/plugin.json`, and a test
 checks that.
 
-## 0.3.0 (2026-10-25) — agents on their own
+## 0.3.0 (2026-10-25) — agents on their own, and files to deliver
 
 What the first run from an agent runtime other than Claude Code tripped on:
-cold shells, no person to play the result, a skills folder elsewhere.
+cold shells, no person to play the result, a skills folder elsewhere. And
+what its first real job needed, which the kit could not do: files to deliver
+(seamless loops, a lift near the end, a level, audible on a phone).
 
 - **One Pd per process, and the line to persist it.** `doctor` (CLI and MCP)
   reports the Pd binary it settled on (`pd`), how pdverify's discovery found
@@ -53,6 +55,23 @@ cold shells, no person to play the result, a skills folder elsewhere.
   human template, which is synced from the harness, is unchanged.
 - The scaffold's build script says to run it with `pdharness run`, since a
   plain `python` may not have pdbuild.
+- **`render_patch`** (MCP) writes a file to use somewhere: a take of
+  `duration`, or with `loop` a seamless loop of exactly that length (pdverify
+  0.5.0's `make_loop`; the result reports the seam). `rms_dbfs`/`peak_dbfs`
+  set the level with one gain, never a limiter, and `sr` and `bits` (16/24)
+  set the format. `expectations` are scored on the file as written. A family
+  of files is a loop in a build script; the kit adds no batch format.
+- **`verify_patch` scores a `.wav` as it is** (QA a delivered file), and
+  knows pdverify 0.5.0's `seamless`, `band_level` and `change`. `within`
+  takes `[t0, null]`, and negative times count from the end, as control `at`
+  times now do too: one score fits every length.
+- **doctor remembers the Pd that passes** (pdverify 0.5.0's `remember`), so a
+  cold shell, a build script or another client finds the same binary with no
+  environment variable. `pd_remembered` names the file; `remember=false` /
+  `--no-remember` leaves no trace. Tests keep it in a temp dir.
+- **Bank:** a new `guides/DELIVERING.md` (loops, arcs, level, small speakers,
+  a family of takes), `render_patch` on the start page, and lessons 47-52
+  ("Delivering a file").
 
 ## 0.2.2 (2026-09-26) — pdbuild v0.9.1, py2pd 11baaf2
 

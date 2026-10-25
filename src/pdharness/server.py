@@ -34,13 +34,15 @@ mcp = MCPServer("pdharness", instructions=INSTRUCTIONS)
 # ----------------------------------------------------------------- tools
 
 @mcp.tool()
-def doctor() -> dict:
+def doctor(remember: bool = True) -> dict:
     """Check that this machine can build and hear a patch: Pd found, a test render produces
     an A4 sine, pdverify/pdbuild importable, whether ELSE externals are present.  Reports the
     Pd binary it settled on (`pd`), how it was found (`pd_found_by`), and `pd_persist`: the
     PDVERIFY_PD lines (POSIX, PowerShell, Windows setx) that make a fresh shell find the same
-    Pd.  Every render this server makes, and every script `run_script` starts, uses that Pd."""
-    return tools.doctor()
+    Pd.  Every render this server makes, and every script `run_script` starts, uses that Pd.
+    A Pd that passes is remembered (`pd_remembered`), so a cold shell finds it with no
+    environment variable; pass remember=false to leave no trace."""
+    return tools.doctor(remember)
 
 
 @mcp.tool()
@@ -57,13 +59,36 @@ def analyze_patch(patch: str, duration: float = 6.0, controls: list[dict] | None
 @mcp.tool()
 def verify_patch(patch: str, expectations: list[dict], duration: float = 6.0,
                  controls: list[dict] | None = None) -> dict:
-    """Render and score against named expectations, worst first.  Each expectation is
+    """Render and score against named expectations, worst first (or score a .wav as it is,
+    no render: QA a delivered file).  Each expectation is
     {"name": <pdverify.expect function>, "args": [...], "kwargs": {...}, "within": [t0, t1]?}.
     Names: not_silent, no_clipping, finite, pitch, note, f0, level, tonal, noisy, centroid,
     has_partial, harmonic, harmonic_series, loudest_partial, brighter_than, darker_than, band,
     percussive, sustained, onsets, stereo, dynamic, steady, ioi, ioi_cv, period, repeats,
-    matches_reference, duration.  Use it to turn every claim about the instrument into a check."""
+    matches_reference, duration, seamless (loops without a click, jump or crossfade dip),
+    band_level (level in one band: {"args": [250], "kwargs": {"min_db": -12, "relative": true}}
+    survives a phone speaker), change (a measure moves between two windows:
+    {"args": ["level", [0, -4], [-4, null]], "kwargs": {"min": 2}} lifts in the last 4 s).
+    Negative times count from the end, in `within`, in `change` windows and in control `at`.
+    Use it to turn every claim about the instrument into a check."""
     return tools.verify_patch(patch, expectations, duration, controls)
+
+
+@mcp.tool()
+def render_patch(patch: str, out: str, duration: float = 6.0, controls: list[dict] | None = None,
+                 sr: int = 44100, bits: int = 16, loop: float | None = None, crossfade: float = 2.0,
+                 preroll: float = 4.0, rms_dbfs: float | None = None, peak_dbfs: float | None = None,
+                 expectations: list[dict] | None = None) -> dict:
+    """Render a patch to a .wav file to use somewhere (a video, a game, a set): `duration`
+    seconds, or with `loop` a seamless loop of exactly `loop` seconds (renders `preroll` +
+    loop + `crossfade`, crossfades the overrun onto the head; the result reports the seam).
+    `rms_dbfs` / `peak_dbfs` set the level with one gain, never a limiter (the ceiling wins and
+    `master.peak_bound` says so).  `sr` and `bits` (16 or 24) set the format.  `controls` as in
+    analyze_patch; a negative `at` is seconds before the end, so one score fits every length.
+    `expectations` (as in verify_patch) are scored on the file as written.  A family of files
+    (several control sets x several lengths) is several calls, or a loop in a build script."""
+    return tools.render_patch(patch, out, duration, controls, sr, bits, loop, crossfade, preroll,
+                              rms_dbfs, peak_dbfs, expectations)
 
 
 @mcp.tool()
