@@ -57,6 +57,15 @@ them from `line~` for glides or from another oscillator for FM.
 Neither `osc~` nor `phasor~` is band-limited — high harmonics alias. A lowpass
 after them (or a modest cutoff) hides it.
 
+**`phasor~` drifts; `osc~` does not, measurably.** A free-running `phasor~`
+loses about 3–6e-6 of a cycle per cycle: about 15 ms an hour at a 4-s loop,
+or 1e-4 of a cycle in a minute at 3/7 Hz. `osc~` stayed under 3e-7 of a
+cycle over 42 s. To lock an LFO to a loop or to a `metro` clock, restart a
+`vline~` ramp from the clock each cycle (pdbuild's `loop_lfo`, 2e-6 after a
+minute) rather than trusting `phasor~` to stay in step. For a seamless loop,
+a steady tone also needs whole cycles per loop (frequency × loop length an
+integer), or it beats against itself in the crossfade.
+
 ## Saturation / drive
 
 `[*~ drive] → [expr~ tanh($v1)]` — smooth, warm soft-clipping. Sounds far better
@@ -82,7 +91,21 @@ what makes chorus/flange possible — modulate the delay time with a slow LFO).
 
 Feedback delay: read → `*~ feedback` → clip → sum back into the `delwrite~`
 input. Keep feedback < ~0.7 and clip it, or it runs away. Cross-feeding L→R and
-R→L gives ping-pong.
+R→L gives ping-pong. **The exception is a delay network** (a reverb): several
+lines mixed back through an orthogonal matrix (Hadamard), each with a gain
+under 1 and a damping `lop~`, are stable with no clip in the loop. 20 s of
+noise at full size and no damping stayed finite and level (pdbuild's
+`reverb`, verified).
+
+**A delay feedback loop is at least one block long** (64 samples, 1.45 ms at
+44.1 kHz): `delwrite~`/`delread~` round-trip no faster. So a Karplus-Strong
+string built on the canvas cannot play above about 689 Hz. Sum decaying
+harmonics instead (pdbuild's `pluck`), or run the loop in a subpatch with
+`[block~ 1]`.
+
+`rev1~`/`rev2~`/`rev3~` are abstractions in Pd's `extra/` folder, not
+built-ins. They load headless where `extra/` ships, and are missing where it
+does not; `rev3~` has 6 inlets.
 
 **A tempo-synced delay must not slide its taps.** A `vd~` whose time follows
 the pulse (`[r pulsems] → [* 3] → [line~] → vd~`) bends the pitch of every
@@ -99,6 +122,15 @@ liveness, crossover and damping, one per inlet, so each can be changed live
 (verified 0.56.2: a connection into inlet 5 is accepted; pdbuild's
 `OBJECT_IO` checks it against Pd). Liveness ~70 short, ~85 long, 100 =
 infinite. Higher damping = darker tail. `rev1~`/`rev2~` are cheaper.
+**A bare `[rev2~]` or `[rev3~]` is silent** (level defaults to 0 dB in Pd's
+scale, i.e. −240 dBFS, measured): always give creation args
+(`rev3~ 100 88 3000 20`) or send the level inlet.
+
+`[tabosc4~ t]` needs its table at **2ⁿ+3 points before DSP starts**: create it
+as `[table t 2051]`, not `[table t]` resized later by `sinesum` — a shared
+loadbang's `; pd dsp 1` can fire first (`error: number of points (100) not a
+power of 2 plus three`). An IEM `[hsl]` outputs exactly the float32 it receives
+(0.44 in, 0.439999997616 out — the same as a message box).
 
 ## Sequencing idioms
 
@@ -133,6 +165,11 @@ control changed and diff the audio), but adding *any* `[random]`/`[noise~]`
 earlier in the file re-seeds every later one — so a check on "the loudest
 partial" or "which note rang longest" can flip between builds for no musical
 reason. Measure fundamentals (`f0`) and band shares, not loudest peaks.
+**A `seed <n>` message makes a stream independent of creation order**:
+`[random]` takes it, and so does `[noise~]` (verified on 0.56.2; seeds are per
+object). Send the seed before the first draw: on the first clock tick, or
+through a `[t b b]` that orders it first. A seed and a draw fanned out from
+one loadbang outlet fire in an order you do not control.
 
 **`[array get name]` / `[array set name]` inlets:** left = bang / float
 onset (fires), **middle = number of points** (float, −1 = to the end), right =
@@ -183,3 +220,55 @@ the individual object files unfindable. On Windows the binaries are `.m_amd64`
 args set the coordinate dimension; `width`/`height` messages set pixel size.
 Its outlet emits `list <x> <y>` and `click <0|1>` — split with
 `[route list click]`, then normalize and clamp the coordinates.
+
+**Lua objects (`.pd_lua`).** ELSE bundles a streamlined pdlua (0.12.23, PUC
+Lua 5.4, not LuaJIT). A `name.pd_lua` file beside the patch becomes the object
+`[name]`, and it runs in `-batch` and through `pdverify.render(Path)` (verified
+2026-09-27, ELSE 1.0-0 rc-14, Pd 0.56.2; the CANTUS brain is a 2,500-line
+example). Reach for it when the logic is real code (rule systems, search,
+state machines) that would otherwise be a tangle of `[expr]`, `[until]` and
+`[text]`:
+
+```lua
+local c = pd.Class:new():register("cn_name")   -- file: cn_name.pd_lua; UTF-8, NO BOM
+function c:initialize(sel, atoms) self.inlets, self.outlets = 1, 1; return true end
+function c:in_1_float(f) self:outlet(1, "float", { f * 2 }) end
+```
+
+Facts that bite (all measured):
+- **Loading ELSE needs the `#X declare -lib else;` record** right after
+  `#N canvas`, *plus* the `[declare -lib else]` box (Pd rebuilds the record
+  from the box on save). A box alone does **not** load ELSE, so the class
+  "couldn't create". An `[else]` object box works only if it comes before the
+  Lua object. pdbuild emits only the box: insert the record into the text.
+- **Lua runtime errors do not fail a strict render**: Pd prints
+  `error: lua: dispatcher: <file>: <line>: <msg>` and exits 0. Grep the
+  console. Syntax errors and `initialize` failures do fail ("couldn't create").
+  An error inside a clock callback before it reschedules kills that clock chain;
+  reschedule first, and wrap the body in `pcall`.
+- **Class names and module names are global to the Pd process**; the first
+  file loaded wins, silently. A `.pd_lua` named like a vanilla object is
+  ignored. Prefix everything.
+- **All pdlua objects share one Lua state**: `math.random` is one shared stream
+  (seeded randomly per launch), and **`pairs()` order changes between Pd
+  launches** (string hashes are seeded per process). For reproducible output
+  use a per-object PRNG and arrays, never `pairs()` on anything that reaches an
+  outlet or a log.
+- `require` finds a sibling `.lua` module only at the **top level** of the
+  `.pd_lua` (`package.loaded[m] = nil` first, so `; pdluax reload` re-reads it).
+- Every number from Pd arrives as a Lua **float**: `"D" .. (62.0 // 12 - 1)` is
+  `"D4.0"`; convert with `math.tointeger` once at the boundary.
+  Numbers crossing an outlet become float32. Format log lines in Lua
+  (`pd.post(string.format(...))`); Lua `print()` goes to stdout, not the Pd
+  window.
+- `pd.Clock` runs in logical time, exactly (`delay`, `set(abs)`, `unset`).
+  **Same-time ordering depends on the driver**: pdverify's controls (`[del]`s
+  set at load) fire before a clock the object set later for the same ms, but a
+  `[qlist]` fires *after* a clock set during its own dispatch. To make a trace
+  driver-independent, let each callback re-arm itself once with `delay(0)` and
+  act on the second firing, and let input events cancel pending second stages.
+- `pd.Receive:new():register(self, "name", "method")` and
+  `pd.send(name, sel, atoms)` work inside the object; a loadbang init reaches a
+  receive registered in `initialize`.
+
+Unverified: pd4web support, and signal (`dsp`/`perform`) methods.
