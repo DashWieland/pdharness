@@ -81,6 +81,10 @@ what its first real job needed, which the kit could not do: files to deliver
   start page and the README; a new `guides/DELIVERING.md` (loops, arcs, level, small speakers,
   a family of takes), `render_patch` on the start page, and lessons 47-52
   ("Delivering a file").
+- Pins pdverify v0.4.0 -> v0.5.0.
+- Pins pdbuild v0.9.1 -> v0.10.0.
+- pdverify 0.5.0: seamless loops of exact length, a seam check, one-gain mastering, band-limited level, change between windows, end-relative times, a remembered Pd path
+- pdbuild 0.10.0: an ambient module tier in vanilla Pd (reverb, drone, pluck, noise_bed, loop_lfo, scale_walk)
 
 ## 0.2.2 (2026-09-26) — pdbuild v0.9.1, py2pd 11baaf2
 

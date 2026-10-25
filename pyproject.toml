@@ -22,8 +22,8 @@ dependencies = [
   # fork's commit): an install changes only when a pin does, and bumping a pin
   # is how a library release reaches participants.  See README "Development".
   "py2pd @ git+https://github.com/DashWieland/py2pd@11baaf2f6b08afc4390c1c4fa5303ff6377f9f26",  # fix/floatatom-fields-and-comments
-  "pdverify @ git+https://github.com/DashWieland/pdverify@v0.4.0",
-  "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.9.1",
+  "pdverify @ git+https://github.com/DashWieland/pdverify@v0.5.0",
+  "pdbuild @ git+https://github.com/DashWieland/pdbuild@v0.10.0",
 ]
 
 [project.optional-dependencies]
