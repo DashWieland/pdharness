@@ -13,6 +13,12 @@ from . import knowledge, tools
 
 INSTRUCTIONS = """pdharness builds Pure Data instruments you can hear.
 
+You build the instrument, with these tools; it belongs to the person you are
+building for. The bank's examples (tend, drift) are worked examples to read
+for patterns, not engines to adapt. If the kit lacks something the piece
+needs, write the gap (what, which tool, the API you would want) in the field
+log's Lessons, then build with what is here.
+
 The iron rule: you cannot hear a patch by reading it. Never report a patch as
 working until `analyze_patch` has rendered it and the report matches the intent.
 The loop is build -> render -> analyze -> iterate.

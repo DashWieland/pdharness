@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdharness"
-version = "0.3.0"
+version = "0.3.1"
 description = "Bring your own agent: an MCP server and knowledge bank for building Pure Data instruments you can hear."
 readme = "README.md"
 requires-python = ">=3.13"

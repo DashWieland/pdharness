@@ -1,10 +1,26 @@
 # Start here
 
 You are about to build a Pure Data instrument for a person who described it
-in plain language. This bank is everything a harness learned doing exactly
-that, eleven instruments in: the tools, the semantics, the lessons, and the
-deal. Read this page fully. Then read `skill/SKILL.md` and
-`lessons/LESSONS.md`. Everything else is reference for when you need it.
+in plain language. You build it, here, with these tools. This bank is
+everything a harness learned doing exactly that: the tools, the semantics,
+the lessons, and the deal. Read this page fully. Then read `skill/SKILL.md`
+and `lessons/LESSONS.md`. Everything else is reference for when you need it.
+
+**Who builds what.** The instrument is yours and your person's. The examples
+in this bank (`examples/tend`, `examples/drift`) are worked examples. Read
+them for their patterns; they are not engines to adapt to a different piece
+(lesson 40, "the claw hammer"). Nobody behind the kit will build the piece
+for you.
+
+If the kit lacks something the piece needs, write the gap down:
+- what you needed;
+- which tool it belongs in (pdverify, pdbuild, the skill, the bank);
+- the API you would want.
+
+It goes in the field log's Lessons. The kit grows by closing gaps as
+general tools. Then build what you can with what is here. Reaching for
+another tool (numpy, a DAW) to make the sound is itself a gap: report
+it.
 
 Building something ambient, or a file to deliver? `examples/drift/` is a
 small worked example (the ambient modules, five claims, a family of loops).

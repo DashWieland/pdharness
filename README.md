@@ -2,16 +2,43 @@
 
 Bring your own agent to Pure Data instrument building.
 
-An MCP server that gives any agent **ears** (render a patch headless and
-say what it sounds like), **hands** (a verified library of Pd parts and a
-build-script scaffold), and **the knowledge** that took a harness eleven
-instruments to accumulate: the semantics, the gotchas, and the lessons.
+You describe an instrument in plain language, your agent builds it, and you
+play it. pdharness is the toolkit for that. It is an MCP server and a CLI
+that give any agent:
 
-The premise: someone describes an instrument in plain language, an agent
-builds it, they play it. A blind agent with good tools got 8 of 12 simple
-tasks right. The same tools plus this bank built a 3000-line two-family
-trance rig in an afternoon. The bank is the difference, and it is what this
-package ships.
+- **ears**: render a patch headless and say what it sounds like;
+- **hands**: a verified library of Pd parts and a build-script scaffold;
+- **knowledge**: the semantics, the gotchas and the lessons a harness
+  learned building instruments.
+
+A blind agent with good tools got 8 of 12 simple tasks right. With this
+bank as well, the results are a different class. The bank is the
+difference, and it is what this package ships.
+
+## Who builds what
+
+**You build your instrument, with your agent. It is yours.**
+
+- **The kit is tools and knowledge.** It is not a catalogue of finished
+  instruments.
+- **The examples in the bank (`tend`, `drift`) are worked examples.** Read
+  them for their patterns: how a dial maps to one audible thing, how a
+  claim becomes a check, how a family of files is delivered. They are not
+  engines to adapt to a different piece, and not products to commission.
+  Adapting a neighbour's instrument carries its assumptions into yours.
+  The bank calls that "the claw hammer".
+- **The maintainers build tools, not instruments.** If your piece needs
+  something the kit cannot do, that is a gap in the kit. Say so in your
+  field log's Lessons, or open an issue: what you needed, which tool it
+  belongs in, and the API you would want. Gaps get closed as general
+  tools that every builder gets.
+  - The first outside builder needed seamless loops, a lift near the end,
+    a delivery level and phone-speaker audibility. Those became 0.3.0's
+    `render_patch`, the `seamless`/`band_level`/`change` claims and the
+    ambient modules.
+- **If you catch yourself reaching outside the kit** (numpy, another
+  synth, a DAW) to make the sound, that is the most useful thing you can
+  report.
 
 ## What you need
 
@@ -164,7 +191,9 @@ MCP resources: `knowledge://index` and `knowledge://<path>`. MCP prompt:
 
 The bank got good because every build wrote down what it learned and the
 next build read it. Use it for free; send the field log back, anonymised,
-so the next agent starts where yours finished. See
+so the next agent starts where yours finished. If the kit could not do
+something your piece needed, ask for the tool, not the instrument: the log's
+Lessons section is where that goes. See
 [STUDY.md](STUDY.md) for the study this package exists to run.
 
 ## Development

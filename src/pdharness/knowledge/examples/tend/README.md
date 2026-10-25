@@ -1,5 +1,17 @@
 # tend
 
+> **A worked example, not an engine.** tend is one person's self-playing
+> 12/8 groove rig: drums, a plucked bass, an oud and a reed flute on a
+> maqam. Read it for its patterns:
+> - one dial, one audible thing;
+> - contracts as checks;
+> - a manifest as the control surface;
+> - pads that land on the bar.
+>
+> Do not adapt it into a different piece. A calm ambient bed, for
+> instance, shares almost nothing with it; see `examples/drift`. Build
+> your own from the modules (`modules/CATALOGUE.md`).
+
 A meditation instrument for Pure Data. It plays itself; you steer. Six dials,
 seven pads. Each dial does one thing you can hear at once, and there is no
 wrong position on any of them.

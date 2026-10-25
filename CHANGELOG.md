@@ -5,6 +5,30 @@ every push to it is a release. The version below must match `pyproject.toml`,
 `src/pdharness/__init__.py` and `.claude-plugin/plugin.json`, and a test
 checks that.
 
+## 0.3.1 (2026-10-25) — who builds what
+
+The first outside builder's brief arrived as a commission: "a music brief
+for Dash", "your harness is the real instrument". The kit presented
+itself as its maintainer's instruments rather than as tools to build your
+own. The maintainers' first reply accepted the commission, which made it
+worse. This release fixes the framing; no code changes.
+
+- **README:**
+  - opens with "you describe it, your agent builds it, you play it";
+  - drops the showcase of the maintainers' own rigs;
+  - adds a **Who builds what** section: you build your instrument; the
+    bank's examples are worked examples, not engines to adapt or
+    products to commission; the maintainers build tools, not
+    instruments, and a gap in the kit becomes a general tool;
+  - "The deal" asks for the tool, not the instrument.
+- **`00_START_HERE.md` and the MCP server's instructions** say the same to
+  the agent. They also say how to report a gap: what, which tool, the API
+  you would want, in the field log's Lessons. Reaching outside the kit
+  counts as a gap.
+- **`examples/tend` and `examples/drift`** open with a "worked example,
+  not an engine" note. tend's note says what it is (a 12/8 groove rig), so
+  that it is not mistaken for an ambient engine.
+
 ## 0.3.0 (2026-10-25) — agents on their own, and files to deliver
 
 What the first run from an agent runtime other than Claude Code tripped on:

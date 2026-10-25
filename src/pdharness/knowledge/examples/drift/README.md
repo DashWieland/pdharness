@@ -1,5 +1,10 @@
 # drift
 
+> **A worked example, small on purpose.** Copy its patterns (whole cycles
+> per loop, notes counted by a probe, a dial checked in isolation, a
+> family of files delivered and scored), not its sound. Your piece should
+> pick its own scale, layers and dials.
+
 A small self-playing ambient bed. Soft plucks walk D dorian (a seeded walk,
 so every render is the same) over a breathing drone and a band of air,
 through a reverb. pdverify describes a delivered loop as "an evolving, warm
