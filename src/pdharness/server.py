@@ -22,7 +22,9 @@ knowledge://skill/SKILL.md and knowledge://lessons/LESSONS.md. Compose from the
 verified modules (knowledge://modules/CATALOGUE.md) before writing raw Pd.
 `new_instrument` gives you a build script that already builds, verifies and
 renders; edit from there. When the instrument is done, fill in the field log
-the scaffold created: it is how the harness learns.
+the scaffold created: it is how the harness learns. Running unattended, with
+no person to play the result? Pass participant="agent" to `new_instrument`
+or `field_log_stub` and answer playability from `probe_patch`.
 """
 
 # keyword arguments only: mcp 2 put title and description before instructions
@@ -34,7 +36,10 @@ mcp = MCPServer("pdharness", instructions=INSTRUCTIONS)
 @mcp.tool()
 def doctor() -> dict:
     """Check that this machine can build and hear a patch: Pd found, a test render produces
-    an A4 sine, pdverify/pdbuild importable, whether ELSE externals are present."""
+    an A4 sine, pdverify/pdbuild importable, whether ELSE externals are present.  Reports the
+    Pd binary it settled on (`pd`), how it was found (`pd_found_by`), and `pd_persist`: the
+    PDVERIFY_PD lines (POSIX, PowerShell, Windows setx) that make a fresh shell find the same
+    Pd.  Every render this server makes, and every script `run_script` starts, uses that Pd."""
     return tools.doctor()
 
 
@@ -82,17 +87,24 @@ def probe_patch(patch: str, watch: list[str], controls: list[dict] | None = None
 @mcp.tool()
 def run_script(script: str, args: list[str] | None = None, cwd: str | None = None,
                timeout: float = 900.0) -> dict:
-    """Run a Python build script with the interpreter that has pdbuild and pdverify installed.
-    Returns the output tail and the files it created or changed.  For clients without a shell."""
+    """Run a Python build script with the interpreter that has pdbuild and pdverify installed,
+    with PDVERIFY_PD set to the Pd `doctor` reports.  Returns the output tail and the files it
+    created or changed.  The CLI equivalent is `pdharness run <script> [args]`."""
     return tools.run_script(script, args, cwd, timeout)
 
 
 @mcp.tool()
-def new_instrument(slug: str, description: str, directory: str | None = None) -> dict:
-    """Scaffold instruments/<slug>/ under `directory` (default: cwd) with a build script that
-    already builds a minimal playable patch (two sliders with `_ui` receives, initialised), verifies
-    it, and renders a demo; plus a README and the field-log stub.  Edit from something that passes."""
-    return tools.new_instrument(slug, description, directory)
+def new_instrument(slug: str, description: str, directory: str | None = None,
+                   participant: str = "human", dry_run: bool = False, exact_dir: bool = False) -> dict:
+    """Scaffold <project>/instruments/<slug>/ with a build script that already builds a minimal
+    playable patch (two sliders with `_ui` receives, initialised), verifies it, and renders a
+    demo; plus a README and the field-log stub in <project>/field_tests/.  Edit from something
+    that passes.  `directory` (default: cwd) is the project root; given an instruments/ folder,
+    or an instrument folder inside one, the folder above instruments/ is used (`note` says so;
+    `exact_dir=true` turns that off).  The result lists `project_root` and `layout`.
+    `dry_run=true` returns the layout and writes nothing.  `participant="agent"` writes the
+    unattended-run field log (the runtime is the participant; playability from probe_patch)."""
+    return tools.new_instrument(slug, description, directory, participant, dry_run, exact_dir)
 
 
 @mcp.tool()
@@ -117,11 +129,15 @@ def knowledge_read(path: str) -> str:
 
 
 @mcp.tool()
-def field_log_stub(slug: str, directory: str | None = None) -> dict:
-    """Create field_tests/<date>_<slug>.md from the template if it does not exist.  Fill it in
-    when the build is done: the request verbatim, every render iteration and its verdict, the
-    intent gaps, and the lessons.  The logs are how the harness gets better."""
-    return tools.field_log_stub(slug, directory)
+def field_log_stub(slug: str, directory: str | None = None, participant: str = "human",
+                   exact_dir: bool = False) -> dict:
+    """Create <project>/field_tests/<date>_<slug>.md from the template if it does not exist.
+    `participant="human"` (default): a study session with a person.  `participant="agent"`: an
+    unattended run; the runtime is the participant, the session is one task, and the
+    playability section is answered from `probe_patch` results, not a person's hands.  Fill it
+    in when the build is done: the request verbatim, every render iteration and its verdict,
+    the intent gaps, and the lessons.  The logs are how the harness gets better."""
+    return tools.field_log_stub(slug, directory, participant, exact_dir)
 
 
 # ----------------------------------------------------------------- resources
@@ -164,8 +180,9 @@ Procedure (the harness's loop; do not skip steps):
    `verify_patch` turns each claim from step 3 into a check; `probe_patch` proves interaction.
 7. Iterate until every claim passes and the description matches what you hear. Render a demo
    .wav and hand it over with the .pd.
-8. Fill in the field log (`field_log_stub`): the request verbatim, each iteration and its
-   verdict, the intent gaps, the lessons. Flag anything the harness lacked.
+8. Fill in the field log (`field_log_stub`; `participant="agent"` when no person will play
+   it): the request verbatim, each iteration and its verdict, the intent gaps, the lessons.
+   Flag anything the harness lacked.
 """
 
 

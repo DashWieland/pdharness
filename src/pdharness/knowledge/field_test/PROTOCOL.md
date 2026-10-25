@@ -24,6 +24,18 @@ as much as the instrument is.
    facilitator adds the participant's-eye view: what they expected, what they
    got, verbatim reactions, whether they would play it again.
 
+## Unattended agent runs
+
+Sometimes no person is at the machine: an agent runtime is given one task
+and builds alone. Then the runtime is the participant, the session is that
+one task, and no hands play the result. Scaffold with `participant="agent"`
+(`pdharness new ... --participant agent`), and the log starts from
+`field_test/AGENT_LOG_TEMPLATE.md` instead. The agent answers playability
+from `probe_patch`: each control driven through its `_ui` receive, what it
+reached, and what that leaves unknown until a person plays it. It also
+records where the kit assumed something about the agent that did not hold
+here.
+
 ## What is measured
 
 - **Convergence:** a working instrument, in how many render iterations.

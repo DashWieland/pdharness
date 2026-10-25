@@ -8,10 +8,10 @@ turns their Python APIs into something an agent can call with JSON.
 
 from __future__ import annotations
 
-import datetime as _dt
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -55,7 +55,104 @@ def _spec(patch: str | Path, duration: float, controls: list[dict] | None, stric
 
     p = Path(patch)
     return RenderSpec(duration=float(duration), controls=parse_controls(controls),
-                      search_paths=(str(p.parent.resolve()),), strict=strict)
+                      search_paths=(str(p.parent.resolve()),), strict=strict,
+                      pd_binary=locate_pd()["path"])
+
+
+# ----------------------------------------------------------------- Pd
+
+# One Pd per process.  `doctor` settles on a binary with pdverify's own discovery
+# (pdverify.pd_locate.discover) and caches it here; every render this process makes
+# passes that path explicitly, and every script `run_script` starts gets it as
+# PDVERIFY_PD.  So the Pd doctor reports is the Pd that renders, in the server, and in
+# a build script started from a cold shell.
+_PD: dict | None = None
+
+# How discover() found the binary, in its vocabulary (pdverify >= 0.5.0 records it as
+# PdBinary.source; for older pdverify, _classify_source reconstructs it).
+PD_SOURCES = {
+    "explicit": "a path passed explicitly",
+    "env": "the PDVERIFY_PD environment variable",
+    "remembered": "the Pd path pdverify remembered (its per-user config)",
+    "path": "`pd` on PATH",
+    "default": "a default install location for this OS",
+    "dev": "a portable Pd unzipped under tools/ near the working directory",
+}
+
+
+def _same_file(a: str, b: str) -> bool:
+    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
+def _classify_source(path: str) -> str:
+    """Which of discover()'s rules produced ``path`` (pdverify < 0.5.0 does not say)."""
+    env = os.environ.get("PDVERIFY_PD")
+    if env and _same_file(env, path):
+        return "env"
+    names = ["pd.com", "pd.exe"] if os.name == "nt" else ["pd", "puredata"]
+    for name in names:
+        found = shutil.which(name)
+        if found and _same_file(found, path):
+            return "path"
+    parts = [x.lower() for x in Path(path).parts]
+    if any(a == "tools" and b.startswith("pd-") for a, b in zip(parts, parts[1:])):
+        return "dev"
+    return "default"
+
+
+def _env_warning() -> str | None:
+    """PDVERIFY_PD set to something that is not there: discover() skips it silently."""
+    env = os.environ.get("PDVERIFY_PD")
+    if env and not Path(env).exists():
+        return f"PDVERIFY_PD is set to {env!r}, which does not exist, so it was ignored"
+    return None
+
+
+def persist_lines(path: str) -> dict:
+    """Ready-to-paste lines that make every shell find this Pd."""
+    ps = path.replace("'", "''")
+    return {
+        "posix": f"export PDVERIFY_PD={shlex.quote(path)}",
+        "powershell": f"$env:PDVERIFY_PD = '{ps}'",
+        "windows_setx": f'setx PDVERIFY_PD "{path}"',
+        "note": ("posix: put the export in your shell profile, or prefix a single command with "
+                 "PDVERIFY_PD=...; a shell that starts cold for every command needs one of the two. "
+                 "`pdharness run <script>` (MCP: run_script) sets it for the script it starts."),
+    }
+
+
+def locate_pd(refresh: bool = False) -> dict:
+    """The Pd this process renders with: path, version, and how it was found.
+
+    The first call (or ``refresh=True``, which doctor uses) runs pdverify's discovery;
+    later calls return the same answer, so the server cannot render with a different
+    Pd from the one doctor reported.  Raises pdverify's PdNotFound if there is none.
+    """
+    global _PD
+    if _PD is not None and not refresh:
+        return dict(_PD)
+    from pdverify.pd_locate import discover
+
+    pd = discover(None)
+    path = os.path.abspath(pd.path)
+    source = getattr(pd, "source", None) or _classify_source(pd.path)
+    _PD = {"path": path, "version": pd.version, "source": source,
+           "found_by": PD_SOURCES.get(source, source), "persist": persist_lines(path)}
+    warning = _env_warning()
+    if warning:
+        _PD["warning"] = warning
+    return dict(_PD)
+
+
+def script_env() -> dict:
+    """The environment a build script runs in: this process's, with PDVERIFY_PD set to the
+    Pd this process settled on (when there is one), so the script's own pdverify finds it."""
+    env = dict(os.environ)
+    try:
+        env["PDVERIFY_PD"] = locate_pd()["path"]
+    except Exception:
+        pass  # no Pd: the script's own discovery will say so
+    return env
 
 
 def _console_errors(console: str) -> list[str]:
@@ -70,8 +167,11 @@ def _console_errors(console: str) -> list[str]:
 # ----------------------------------------------------------------- doctor
 
 def doctor() -> dict:
-    """Is this machine able to build and hear a patch?"""
-    info: dict[str, Any] = {"python": sys.version.split()[0], "platform": platform.platform()}
+    """Is this machine able to build and hear a patch?  Also: which Pd, found how, and
+    the line that makes a fresh shell find the same one."""
+    from . import __version__
+    info: dict[str, Any] = {"pdharness": __version__, "python": sys.version.split()[0],
+                            "python_executable": sys.executable, "platform": platform.platform()}
     try:
         import pdverify
         info["pdverify"] = pdverify.__version__
@@ -90,14 +190,25 @@ def doctor() -> dict:
     except Exception as e:
         info["pdbuild"] = f"MISSING ({e})"
     try:
-        from pdverify.pd_locate import discover
-        pd = discover(None)
-        info["pd"] = str(pd)
+        pd = locate_pd(refresh=True)
     except Exception as e:
         info["pd"] = f"NOT FOUND ({e})"
+        warning = _env_warning()
+        if warning:
+            info["pd_warning"] = warning
         info["ok"] = False
         info["fix"] = "Install Pure Data (puredata.info) and put `pd` on PATH, or set PDVERIFY_PD to the executable."
         return info
+    info["pd"] = pd["path"]
+    info["pd_source"] = pd["source"]
+    info["pd_found_by"] = pd["found_by"]
+    if pd.get("warning"):
+        info["pd_warning"] = pd["warning"]
+    info["pd_persist"] = pd["persist"]
+    # REMEMBER-PD: once pdharness pins pdverify >= 0.5.0, call
+    # pdverify.pd_locate.remember(pd["path"]) here (after the probe render below passes),
+    # so a cold shell's discover() finds this same Pd with no environment variable.
+    pd_path = pd["path"]
     # a real render: the only proof the capture pipeline works
     try:
         from pdverify import analyze
@@ -107,7 +218,7 @@ def doctor() -> dict:
             t.write_text("#N canvas 0 0 300 200 10;\n#X obj 20 20 osc~ 440;\n#X obj 20 50 *~ 0.2;\n"
                          "#X obj 20 80 dac~;\n#X connect 0 0 1 0;\n#X connect 1 0 2 0;\n#X connect 1 0 2 1;\n",
                          encoding="utf-8")
-            r = render(str(t), RenderSpec(duration=0.5))
+            r = render(str(t), RenderSpec(duration=0.5, pd_binary=pd_path))
             rep = analyze(r.audio)
             info["pd_version"] = r.pd_version
             info["render_ms"] = round(r.wall_ms, 1)
@@ -123,7 +234,7 @@ def doctor() -> dict:
             t = Path(d) / "else.pd"
             t.write_text("#N canvas 0 0 300 200 10;\n#X obj 20 20 else/lop2~ 1000;\n#X obj 20 60 dac~;\n"
                          "#X connect 0 0 1 0;\n", encoding="utf-8")
-            r = render(str(t), RenderSpec(duration=0.2, strict=False))
+            r = render(str(t), RenderSpec(duration=0.2, strict=False, pd_binary=pd_path))
             info["else_externals"] = not r.missing_externals
     except Exception:
         info["else_externals"] = False
@@ -257,7 +368,8 @@ def probe_patch(patch: str, watch: list[str], controls: list[dict] | None = None
         t = Path(d) / p.name
         t.write_text(probe_text, encoding="utf-8")
         spec = RenderSpec(duration=float(duration), controls=parse_controls(controls),
-                          search_paths=(str(p.parent.resolve()),), strict=False)
+                          search_paths=(str(p.parent.resolve()),), strict=False,
+                          pd_binary=locate_pd()["path"])
         r = render(str(t), spec)
     lines = (r.pd_console or "").splitlines()
     got = {name: [l.split(":", 1)[1].strip() for l in lines if l.startswith(f"{name}:")] for name in watch}
@@ -267,16 +379,31 @@ def probe_patch(patch: str, watch: list[str], controls: list[dict] | None = None
 
 # ----------------------------------------------------------------- hands
 
-def run_script(script: str, args: list[str] | None = None, cwd: str | None = None,
-               timeout: float = 900.0) -> dict:
-    """Run a Python build script with this environment's interpreter (the one that has pdbuild
-    and pdverify).  Returns the tail of its output and the files it produced or touched."""
+def script_command(script: str | None = None, args: list[str] | None = None, module: str | None = None,
+                   cwd: str | None = None) -> tuple[list[str], Path]:
+    """The command line and working directory for running a build script (or ``-m module``)
+    with this environment's interpreter.  A script runs in its own folder unless ``cwd``
+    says otherwise; a module runs in the current directory."""
+    if module:
+        cmd = [sys.executable, "-m", module, *([script] if script else []), *(args or [])]
+        return cmd, (Path(cwd).resolve() if cwd else Path.cwd())
+    if not script:
+        raise ValueError("give a script to run (or a module)")
     s = Path(script).resolve()
     if not s.exists():
         raise FileNotFoundError(script)
-    workdir = Path(cwd).resolve() if cwd else s.parent
+    return [sys.executable, str(s), *(args or [])], (Path(cwd).resolve() if cwd else s.parent)
+
+
+def run_script(script: str, args: list[str] | None = None, cwd: str | None = None,
+               timeout: float = 900.0) -> dict:
+    """Run a Python build script with this environment's interpreter (the one that has pdbuild
+    and pdverify), with PDVERIFY_PD set to the Pd this process renders with.  Returns the tail
+    of its output and the files it produced or touched."""
+    cmd, workdir = script_command(script, args, cwd=cwd)
+    env = script_env()
     before = {f: f.stat().st_mtime for f in workdir.rglob("*") if f.is_file()}
-    proc = subprocess.run([sys.executable, str(s), *(args or [])], cwd=str(workdir),
+    proc = subprocess.run(cmd, cwd=str(workdir), env=env,
                           capture_output=True, text=True, encoding="utf-8", errors="replace",
                           timeout=timeout)
     after = {f: f.stat().st_mtime for f in workdir.rglob("*") if f.is_file()}
@@ -284,7 +411,7 @@ def run_script(script: str, args: list[str] | None = None, cwd: str | None = Non
                      if f not in before or before[f] != m)
     out = (proc.stdout + ("\n" + proc.stderr if proc.stderr else "")).strip().splitlines()
     return {"returncode": proc.returncode, "output_tail": out[-60:], "files_changed": changed[:50],
-            "cwd": str(workdir)}
+            "cwd": str(workdir), "python": sys.executable, "pd": env.get("PDVERIFY_PD")}
 
 
 def list_modules() -> str:
@@ -292,19 +419,30 @@ def list_modules() -> str:
     return knowledge.read("modules/CATALOGUE.md")
 
 
-def new_instrument(slug: str, description: str, directory: str | None = None) -> dict:
-    """Scaffold instruments/<slug>/ with a build script that already builds, verifies and
-    renders a minimal playable patch, plus a README and a field-log stub."""
+def new_instrument(slug: str, description: str, directory: str | None = None,
+                   participant: str = "human", dry_run: bool = False, exact_dir: bool = False) -> dict:
+    """Scaffold <project>/instruments/<slug>/ with a build script that already builds, verifies
+    and renders a minimal playable patch, plus a README and a field-log stub in
+    <project>/field_tests/.  ``directory`` (default: cwd) is the project root; if it is itself
+    an instruments/ folder, or an instrument folder inside one, its project root is used
+    instead (``exact_dir=True`` turns that off).  ``dry_run`` reports the layout and writes
+    nothing.  ``participant="agent"`` writes the unattended-agent field log."""
     from .scaffold import scaffold
-    return scaffold(slug, description, Path(directory) if directory else Path.cwd())
+    return scaffold(slug, description, Path(directory) if directory else Path.cwd(),
+                    participant=participant, dry_run=dry_run, exact_dir=exact_dir)
 
 
-def field_log_stub(slug: str, directory: str | None = None) -> dict:
-    from . import knowledge
-    base = Path(directory) if directory else Path.cwd()
-    logs = base / "field_tests"
-    logs.mkdir(parents=True, exist_ok=True)
-    path = logs / f"{_dt.date.today().isoformat()}_{slug}.md"
-    if not path.exists():
-        path.write_text(knowledge.read("field_test/LOG_TEMPLATE.md").replace("<slug>", slug), encoding="utf-8")
-    return {"path": str(path)}
+def field_log_stub(slug: str, directory: str | None = None, participant: str = "human",
+                   exact_dir: bool = False) -> dict:
+    """Create <project>/field_tests/<date>_<slug>.md from the template if it does not exist.
+    ``participant="human"``: a study session with a person.  ``participant="agent"``: an
+    unattended run, where the participant is the agent runtime, the session is one task, and
+    playability is answered from probe_patch results.  The project root is found the way
+    ``new_instrument`` finds it, so the log lands beside instruments/, not inside it."""
+    from .scaffold import project_root, write_field_log
+    root, note = project_root(Path(directory) if directory else Path.cwd(), exact=exact_dir)
+    path = write_field_log(root, slug, participant)
+    out = {"path": str(path), "participant": participant, "project_root": str(root)}
+    if note:
+        out["note"] = note
+    return out

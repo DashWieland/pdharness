@@ -39,7 +39,32 @@ DESCRIPTIONS = {
     "examples/tend/tend.json": "tend's manifest: the control surface as a contract.",
     "field_test/PROTOCOL.md": "How a build session with a participant is run and measured.",
     "field_test/LOG_TEMPLATE.md": "The field log every build writes when it is done.",
+    "field_test/AGENT_LOG_TEMPLATE.md": "The field log for an unattended agent run: the runtime is the participant, playability comes from probe_patch.",
 }
+
+
+SKILL_NAME = "pure-data"
+
+
+def skill_files() -> list[tuple[str, str]]:
+    """The pure-data skill as (relative path, text) pairs, SKILL.md first."""
+    base = _ROOT / "skill"
+    files = sorted((p.relative_to(base).as_posix(), p) for p in base.rglob("*")
+                   if p.is_file() and "__pycache__" not in p.parts)
+    files.sort(key=lambda f: f[0] != "SKILL.md")
+    return [(rel, p.read_text(encoding="utf-8")) for rel, p in files]
+
+
+def skill_bundle() -> str:
+    """The whole skill as one text: every file between FILE markers, for a runtime whose
+    skills folder is not ~/.claude/skills to file itself."""
+    files = skill_files()
+    out = [f"# The {SKILL_NAME} skill: {len(files)} files.",
+           f"# Save each one as <your skills folder>/{SKILL_NAME}/<path>. SKILL.md is the entry point;",
+           "# references/ are read on demand.", ""]
+    for rel, text in files:
+        out += [f"===== FILE: {rel} =====", text.rstrip("\n").replace("\r\n", "\n"), f"===== END FILE: {rel} =====", ""]
+    return "\n".join(out)
 
 
 def root() -> Path:

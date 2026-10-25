@@ -18,13 +18,15 @@ package ships.
 - **Pure Data** (vanilla, 0.54 or later) on your PATH, from
   [puredata.info](https://puredata.info). The ELSE library is optional;
   `doctor` says whether it is found.
-- **Python 3.13 or later** and [uv](https://docs.astral.sh/uv/) (or pip).
-- **An agent that speaks MCP.** Claude Code is the tested client.
+- **Python 3.13 or later** (3.14 is what the tests run on) and
+  [uv](https://docs.astral.sh/uv/) (or pip).
+- **An agent.** One that speaks MCP gets the server; Claude Code is the
+  tested client. One that only has a shell gets the same loop from the CLI.
 
 ## Install
 
 ```bash
-uv tool install git+https://github.com/DashWieland/pdharness
+uv tool install --python 3.14 git+https://github.com/DashWieland/pdharness
 pdharness doctor
 ```
 
@@ -36,6 +38,32 @@ heard an A4. If it did, everything works. The three harness packages
 (pdverify, pdbuild and a patched py2pd) are pulled from git by the install,
 pinned to tagged releases; none is on PyPI yet.
 
+**Which Python.** The dependencies are pinned, but the interpreter is not.
+Without `--python`, uv picks the newest Python it has or can download, which
+may be newer than anything the tests have run on. `--python 3.14` asks for
+the version the tests run on, so every participant runs the same kit.
+`requires-python` is `>=3.13` (py2pd needs 3.13) with no upper bound,
+because nothing yet shows a newer Python breaking it. `doctor` prints the
+version you got, and the field log records it.
+
+**Which Pd.** `doctor` prints the Pd binary it settled on, how it found it
+(`PDVERIFY_PD`, PATH, a default install location), and the lines that make
+every shell find the same one:
+
+```
+pd                 /usr/local/bin/pd
+pd_found_by        `pd` on PATH
+  POSIX sh/bash/zsh:           export PDVERIFY_PD=/usr/local/bin/pd
+  PowerShell, this session:    $env:PDVERIFY_PD = '/usr/local/bin/pd'
+  Windows, every new shell:    setx PDVERIFY_PD "/usr/local/bin/pd"
+```
+
+The MCP server renders with that Pd, and `run_script` and `pdharness run`
+pass it to the scripts they start. A build script run any other way does
+its own lookup, so if your shell starts cold for every command, set
+`PDVERIFY_PD` or use `pdharness run`. `pdharness doctor --json` gives the
+same report as JSON.
+
 Register the server with your agent:
 
 ```bash
@@ -44,6 +72,11 @@ pdharness install-skill      # optional: the pure-data skill into ~/.claude/skil
 ```
 
 Any other MCP client: `pdharness mcp-config` prints the JSON.
+
+If your agent keeps its skills somewhere else, `pdharness install-skill
+--target <skills folder>` installs the skill as `<skills folder>/pure-data`.
+`pdharness install-skill --print` writes every file of the skill to stdout,
+between `===== FILE: <path> =====` markers, for the agent to file itself.
 
 Or, as a Claude Code plugin (skill and server together):
 
@@ -65,31 +98,62 @@ each claim, probe the interaction, and hand back a `.pd` you can open in
 Pd, a demo `.wav`, and a README. The MCP prompt `build_instrument` is the
 same procedure, if your client supports prompts.
 
-Without an agent, the parts are still useful:
+From a shell, with or without an agent, the parts are the same:
 
 ```bash
 pdharness knowledge                     # the bank's index
 pdharness knowledge lessons/LESSONS.md  # one document
 pdharness new rain_roof "rain on a tin roof I can speed up"   # a build script that already passes
-python instruments/rain_roof/build_rain_roof.py
+pdharness run instruments/rain_roof/build_rain_roof.py        # build -> verify -> demo .wav
+pdharness run -m pdverify analyze instruments/rain_roof/rain_roof.pd --dur 6   # the ears
 ```
+
+`pdharness run` uses the kit's own Python, the one that has pdbuild and
+pdverify. After a `uv tool install`, a plain `python` usually has neither.
+
+`pdharness new` works in a **project root**. It prints the layout before
+it writes anything (`--dry-run` stops there):
+
+```
+<project>/instruments/rain_roof/build_rain_roof.py
+<project>/instruments/rain_roof/README.md
+<project>/field_tests/<date>_rain_roof.md
+```
+
+Run it from a folder named `instruments/`, or from an instrument folder
+inside one, and it uses the folder above as the project root, so the
+instrument and its field log stay in one tree. `--exact-dir` turns that
+off.
+
+**Unattended runs.** When an agent builds on its own and no person will
+play the result, `pdharness new ... --participant agent` (MCP:
+`participant="agent"`) writes a field log in which the agent runtime is the
+participant and the session is one task. It fills in the date, the kit and
+the Pd itself, and asks for playability from `probe_patch` results instead
+of a person's hands.
 
 ## The tools
 
-| Tool | What it is |
-|---|---|
-| `doctor` | can this machine build and hear? |
-| `new_instrument` | a build script that already builds, verifies and renders |
-| `run_script` | run a build script with the right interpreter |
-| `analyze_patch` | the ears: description, integrity, pitch, level, timbre, onsets, rhythm |
-| `verify_patch` | claims as checks: pitch, note, level, onsets, percussive, brighter_than, repeats, ... |
-| `compare_patches` | similarity between two renders |
-| `probe_patch` | the interaction check: `[print]` taps on receives while controls are played in |
-| `list_modules` | the verified parts |
-| `knowledge_index` / `knowledge_read` | the bank, for clients without resources |
-| `field_log_stub` | the log every build writes |
+The MCP server and the CLI share one implementation, but not every tool has
+both shapes. **both** means the same tool under two names.
 
-Resources: `knowledge://index` and `knowledge://<path>`.
+| MCP tool | CLI | Surface | What it is |
+|---|---|---|---|
+| `doctor` | `pdharness doctor [--json]` | both | can this machine build and hear? Which Pd, found how, and its `PDVERIFY_PD` line |
+| `new_instrument` | `pdharness new <slug> "<description>"` | both | a build script that already builds, verifies and renders, and its field log |
+| `run_script` | `pdharness run <script> [args]` | both | run a build script with the kit's interpreter and its Pd |
+| `analyze_patch` | `pdharness run -m pdverify analyze <patch> --dur 6` | MCP; CLI through pdverify | the ears: description, integrity, pitch, level, timbre, onsets, rhythm |
+| `verify_patch` | | MCP | claims as checks: pitch, note, level, onsets, percussive, brighter_than, repeats, ... From a shell, the build script's `verify_patch()` is the same check. |
+| `compare_patches` | | MCP | similarity between two renders |
+| `probe_patch` | | MCP | the interaction check: `[print]` taps on receives while controls are played in |
+| `list_modules` | `pdharness knowledge modules/CATALOGUE.md` | both | the verified parts |
+| `knowledge_index`, `knowledge_read` | `pdharness knowledge [path]` | both | the bank, for clients without resources |
+| `field_log_stub` | `pdharness field-log <slug> [--participant agent]` | both | the log every build writes |
+| | `pdharness install-skill [--target DIR or --print]` | CLI | the pure-data skill, into a skills folder or to stdout |
+| | `pdharness serve`, `pdharness mcp-config` | CLI | run the server; print how to register it |
+
+MCP resources: `knowledge://index` and `knowledge://<path>`. MCP prompt:
+`build_instrument`.
 
 ## The deal
 

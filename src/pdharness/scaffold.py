@@ -13,10 +13,11 @@ from pathlib import Path
 
 BUILD = '''"""{slug}: {description}
 
-Built with pdbuild, verified with pdverify.  Run it:
+Built with pdbuild, verified with pdverify.  Run it with the kit's interpreter
+(the one that has pdbuild and pdverify; a plain `python` may not):
 
-    python build_{slug}.py            # build -> verify -> render the demo
-    python build_{slug}.py --build-only
+    pdharness run build_{slug}.py                # build -> verify -> render the demo
+    pdharness run build_{slug}.py --build-only
 
 The loop is build -> render -> analyze -> iterate.  You cannot hear a patch by
 reading it; `verify()` is where every claim about the sound becomes a check.
@@ -131,22 +132,126 @@ receive, so a MIDI map or a test drives the same thing a hand does.
 """
 
 
-def scaffold(slug: str, description: str, base: Path) -> dict:
-    if not slug.replace("_", "").isalnum() or not slug[0].isalpha():
+PARTICIPANTS = {
+    # who the field log is about -> the bank template it starts from
+    "human": "field_test/LOG_TEMPLATE.md",
+    "agent": "field_test/AGENT_LOG_TEMPLATE.md",
+}
+
+
+def _looks_like_instrument(d: Path) -> bool:
+    return d.is_dir() and (any(d.glob("build_*.py")) or any(d.glob("*.pd")))
+
+
+def project_root(base: Path, exact: bool = False) -> tuple[Path, str | None]:
+    """The project root for ``base``, and a note when it is not ``base`` itself.
+
+    The layout is <root>/instruments/<slug>/ and <root>/field_tests/.  Asked from a folder
+    that is itself named instruments/, or from an instrument folder inside one, the root
+    is the folder above instruments/, so a new instrument does not land in
+    instruments/instruments/ with its field log in a different tree.  ``exact`` takes
+    ``base`` as the root regardless.
+    """
+    base = Path(base).resolve()
+    if exact:
+        return base, None
+    if base.name.lower() == "instruments":
+        return base.parent, (f"{base} is itself an instruments/ folder, so the project root is "
+                             f"its parent, {base.parent}")
+    if base.parent.name.lower() == "instruments" and _looks_like_instrument(base):
+        root = base.parent.parent
+        return root, (f"{base} is an instrument folder inside instruments/, so the project root is "
+                      f"{root}")
+    return base, None
+
+
+def _kit_line() -> str:
+    import platform
+    import sys
+
+    from . import __version__
+    bits = [f"pdharness {__version__}"]
+    for mod in ("pdverify", "pdbuild"):
+        try:
+            bits.append(f"{mod} {getattr(__import__(mod), '__version__', 'installed')}")
+        except Exception:
+            bits.append(f"{mod} MISSING")
+    bits.append(f"Python {sys.version.split()[0]}")
+    bits.append(platform.platform())
+    return ", ".join(bits)
+
+
+def _home_as_tilde(path: str) -> str:
+    """The logs go back anonymised: a path under the home folder loses the user name."""
+    home = str(Path.home())
+    if home and path.lower().startswith(home.lower()):
+        return "~" + path[len(home):]
+    return path
+
+
+def _pd_line() -> str:
+    from . import tools
+    try:
+        pd = tools.locate_pd()
+    except Exception as e:
+        return f"not found ({e})"
+    return f"{_home_as_tilde(pd['path'])} (Pd {pd['version'] or '?'}, found by {pd['found_by']})"
+
+
+def field_log_path(root: Path, slug: str) -> Path:
+    return Path(root) / "field_tests" / f"{_dt.date.today().isoformat()}_{slug}.md"
+
+
+def write_field_log(root: Path, slug: str, participant: str = "human") -> Path:
+    """Write <root>/field_tests/<date>_<slug>.md from the participant's template, unless
+    it exists.  The agent template also gets the date, the kit and the Pd filled in, since
+    an unattended run has no facilitator to note them."""
+    from . import knowledge
+    if participant not in PARTICIPANTS:
+        raise ValueError(f"participant must be one of {sorted(PARTICIPANTS)}, not {participant!r}")
+    path = field_log_path(root, slug)
+    if not path.exists():
+        text = knowledge.read(PARTICIPANTS[participant]).replace("<slug>", slug)
+        if participant == "agent":
+            text = (text.replace("<date>", _dt.date.today().isoformat())
+                        .replace("<kit>", _kit_line()).replace("<pd>", _pd_line()))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return path
+
+
+def plan(slug: str, base: Path, exact_dir: bool = False) -> dict:
+    """What ``scaffold`` would create, without creating it."""
+    if not slug or not slug.replace("_", "").isalnum() or not slug[0].isalpha():
         raise ValueError("slug must be letters, digits and underscores, starting with a letter")
-    d = base / "instruments" / slug
-    d.mkdir(parents=True, exist_ok=True)
+    root, note = project_root(base, exact=exact_dir)
+    d = root / "instruments" / slug
+    files = [d / f"build_{slug}.py", d / "README.md", field_log_path(root, slug)]
+    out = {"project_root": str(root), "instrument_dir": str(d),
+           "layout": [str(f) for f in files],
+           "generated_by_the_build": [str(d / f"{slug}.pd"), str(d / f"{slug}_demo.wav")]}
+    if note:
+        out["note"] = note
+    return out
+
+
+def scaffold(slug: str, description: str, base: Path, participant: str = "human",
+             dry_run: bool = False, exact_dir: bool = False) -> dict:
+    if participant not in PARTICIPANTS:
+        raise ValueError(f"participant must be one of {sorted(PARTICIPANTS)}, not {participant!r}")
+    layout = plan(slug, base, exact_dir)
+    root, d = Path(layout["project_root"]), Path(layout["instrument_dir"])
     build = d / f"build_{slug}.py"
     if build.exists():
         raise FileExistsError(build)
+    if dry_run:
+        return {**layout, "dry_run": True}
+    d.mkdir(parents=True, exist_ok=True)
     build.write_text(BUILD.format(slug=slug, description=description.replace('"', "'")), encoding="utf-8")
     (d / "README.md").write_text(README.format(slug=slug, description=description,
                                                controls="PITCH, LEVEL"), encoding="utf-8")
-    from . import knowledge
-    logs = base / "field_tests"
-    logs.mkdir(parents=True, exist_ok=True)
-    log = logs / f"{_dt.date.today().isoformat()}_{slug}.md"
-    if not log.exists():
-        log.write_text(knowledge.read("field_test/LOG_TEMPLATE.md").replace("<slug>", slug), encoding="utf-8")
-    return {"build_script": str(build), "readme": str(d / "README.md"), "field_log": str(log),
-            "next": f"python {build}  (then edit build() and verify_patch() toward the description)"}
+    log = write_field_log(root, slug, participant)
+    return {**layout, "build_script": str(build), "readme": str(d / "README.md"), "field_log": str(log),
+            "participant": participant,
+            "next": (f"pdharness run {build}  (MCP: run_script); then edit build() and verify_patch() "
+                     "toward the description")}

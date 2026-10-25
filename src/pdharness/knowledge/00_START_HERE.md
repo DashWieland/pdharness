@@ -32,6 +32,18 @@ matches the intent.
 The knowledge bank is `knowledge://index` and `knowledge://<path>` as
 resources, or `knowledge_read` as a tool.
 
+No MCP, only a shell? The CLI has the same loop: `pdharness doctor`,
+`pdharness new <slug> "<description>"`, `pdharness run <build script>` (the
+kit's Python, with the Pd doctor found), `pdharness run -m pdverify analyze
+<patch> --dur 6` for the ears, `pdharness knowledge [path]` for this bank. If
+every command starts in a fresh shell, set the `PDVERIFY_PD` line `doctor`
+prints, or run everything through `pdharness run`.
+
+Running unattended, with no person to play the result? Scaffold with
+`participant="agent"` (CLI: `--participant agent`). The field log then treats
+the agent runtime as the participant, and you answer its playability section
+from `probe_patch` results.
+
 ## How a build goes
 
 1. **Translate the description into claims** you could check by ear before

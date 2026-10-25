@@ -5,6 +5,55 @@ every push to it is a release. The version below must match `pyproject.toml`,
 `src/pdharness/__init__.py` and `.claude-plugin/plugin.json`, and a test
 checks that.
 
+## 0.3.0 (2026-10-25) — agents on their own
+
+What the first run from an agent runtime other than Claude Code tripped on:
+cold shells, no person to play the result, a skills folder elsewhere.
+
+- **One Pd per process, and the line to persist it.** `doctor` (CLI and MCP)
+  reports the Pd binary it settled on (`pd`), how pdverify's discovery found
+  it (`pd_source`, `pd_found_by`: `PDVERIFY_PD`, PATH, a default install
+  location, a portable copy under `tools/`), a warning when `PDVERIFY_PD`
+  names a missing file, and `pd_persist`, ready-to-paste `PDVERIFY_PD` lines
+  for POSIX shells, PowerShell and Windows `setx`. The Pd comes from
+  pdverify's own `discover()`. Every render the server makes uses that same
+  binary, and every script `run_script` starts gets it as `PDVERIFY_PD`, so
+  doctor and a render cannot disagree within one server process. `doctor` also
+  prints the kit's Python executable, and `pdharness doctor --json` prints the
+  report as JSON.
+- **`pdharness run <script> [args]`**, the CLI's `run_script`: runs a build
+  script with the kit's interpreter and `PDVERIFY_PD` set, and streams its
+  output. `pdharness run -m pdverify analyze <patch> --dur 6` runs a module, so
+  a shell-only agent has the ears too. **`pdharness field-log <slug>`** is the
+  CLI's `field_log_stub`.
+- **The README's tool table says which surface each tool is on**: MCP, CLI
+  or both, with the CLI name beside the MCP name.
+- **`new` no longer nests `instruments/instruments/`.** `new` (CLI) and
+  `new_instrument` (MCP) take their directory as the project root, report
+  `project_root` and the `layout` before writing (`--dry-run` / `dry_run`
+  writes nothing), and keep the instrument and its field log in the same root.
+  Given a folder named `instruments/`, or an instrument folder inside one,
+  they use the folder above and say so in `note`. `--exact-dir` / `exact_dir`
+  turns that off. `field_log_stub` finds the root the same way.
+- **The interpreter policy is written down.** The README installs with
+  `uv tool install --python 3.14`, the version the tests run on. It explains
+  that without `--python` uv floats to the newest Python. `requires-python`
+  stays `>=3.13`, with no upper bound.
+- **`install-skill --target DIR`** installs the skill into any skills folder
+  (as `DIR/pure-data`). **`install-skill --print`** writes every file of the
+  skill to stdout between `===== FILE: <path> =====` markers, for a runtime
+  to file itself.
+- **A field log for unattended agent runs.** `field_log_stub`,
+  `new_instrument`, `pdharness new` and `pdharness field-log` take
+  `participant="agent"` (CLI: `--participant agent`). The log starts from the
+  new `field_test/AGENT_LOG_TEMPLATE.md`. The participant is the runtime and
+  the session is one task. The date, the kit's versions, the Python version
+  and the Pd are filled in (a path under the home folder shows as `~`), and the playability section is a table of `probe_patch`
+  results, with a section on friction between the kit and the runtime. The
+  human template, which is synced from the harness, is unchanged.
+- The scaffold's build script says to run it with `pdharness run`, since a
+  plain `python` may not have pdbuild.
+
 ## 0.2.2 (2026-09-26) — pdbuild v0.9.1, py2pd 11baaf2
 
 - Pins pdbuild v0.9.0 -> v0.9.1.
